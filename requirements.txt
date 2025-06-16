@@ -1,0 +1,12 @@
+
+reflex==0.7.14
+openai
+python-docx
+PyMuPDF
+pytesseract
+pdf2image
+pandas
+beautifulsoup4
+requests
+python-dotenv
+reflex-local-auth
