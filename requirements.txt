@@ -1,4 +1,3 @@
-
 reflex==0.7.14
 openai
 python-docx
@@ -8,5 +7,6 @@ pdf2image
 pandas
 beautifulsoup4
 requests
+lxml
 python-dotenv
 reflex-local-auth

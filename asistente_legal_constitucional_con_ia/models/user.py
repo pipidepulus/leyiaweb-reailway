@@ -1,10 +1,12 @@
-import reflex as rx
+# from sqlmodel import Field  # Import Field from sqlmodel
+# import reflex as rx
 
-class User(rx.Model, table=True):
-    username: str = rx.Field(unique=True, index=True)
-    hashed_password: str
-    email: str = rx.Field(default="")
-    is_active: bool = rx.Field(default=True)
 
-    def __str__(self):
-        return self.username
+# class LocalUser(rx.Model, table=True):
+#     username: str = Field(unique=True, index=True)  # Use sqlmodel.Field
+#     password_hash: str
+#     email: str = Field(default="")  # Use sqlmodel.Field
+#     enabled: bool = Field(default=True)  # Use sqlmodel.Field
+
+#     def __str__(self):
+#         return self.username

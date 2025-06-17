@@ -1,26 +1,10 @@
 import reflex as rx
-from reflex_local_auth import require_login
 from asistente_legal_constitucional_con_ia.states.auth_state import AuthState
-from asistente_legal_constitucional_con_ia.components.sidebar import sidebar
 
 
 @rx.page(route="/login", title="Login")
-@require_login
 def login_page() -> rx.Component:
     """The UI for the login page."""
-    return rx.el.div(
-        sidebar(),
-        rx.el.div(
-            rx.el.h1("Login", class_name="text-2xl font-bold mb-4"),
-            rx.el.p(
-                "Aquí irá el formulario de login (placeholder).",
-                class_name="text-lg text-gray-600",
-            ),
-            class_name="flex flex-col items-center justify-center h-full w-full",
-        ),
-        class_name="flex h-screen font-['Inter'] bg-gray-50 dark:bg-gray-900",
-    )
-
     return rx.el.div(
         rx.el.div(
             rx.el.h2(

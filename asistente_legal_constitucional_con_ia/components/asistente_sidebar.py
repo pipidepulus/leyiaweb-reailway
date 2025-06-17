@@ -11,11 +11,13 @@ def asistente_sidebar() -> rx.Component:
             ),
             file_uploader(),
             file_list(),
+            # Botón para regresar a la página principal
             rx.button(
-                "Regresar a pantalla principal",
-                on_click=rx.redirect("/"),
-                class_name="mt-6 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-md py-2 px-4"
+                "Ir a Página Principal",
+                on_click=lambda: rx.redirect("/"), # Asumiendo que la página principal está en la ruta "/"
+                class_name="mt-6 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow"
             ),
+            # Se elimina la lógica de login/logout de este sidebar
             class_name="flex flex-col gap-4 p-4 h-full"
         ),
         class_name="w-80 bg-white dark:bg-gray-900 border-r flex flex-col h-full shadow-lg z-10"
