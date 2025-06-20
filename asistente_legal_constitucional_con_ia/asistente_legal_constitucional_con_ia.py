@@ -8,4 +8,3 @@ def index():
 # La inicialización más simple posible.
 app = rx.App()
 app.add_page(index)
-app.compile()
