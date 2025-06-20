@@ -1,9 +1,8 @@
 import reflex as rx
-from reflex_local_auth import require_login
 from asistente_legal_constitucional_con_ia.components.sidebar import sidebar
 
+
 @rx.page(route="/chat", title="Chat")
-@require_login
 def chat_page() -> rx.Component:
     return rx.hstack(
         sidebar(),

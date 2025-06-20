@@ -2,6 +2,7 @@ import os
 import re
 from ..util.text_extraction import extract_text_from_bytes
 
+
 def extract_prompts_to_markdown(docx_path: str, md_path: str):
     """
     Extrae contenido de un archivo DOCX y lo formatea en Markdown.
@@ -16,14 +17,14 @@ def extract_prompts_to_markdown(docx_path: str, md_path: str):
 
     lines = text.splitlines()
     output_md_lines = []
-    
+
     # Regex para identificar inicios de bloques que serán H2 (prompts individuales para la UI)
     # Incluye "Fase X:" y "X.Y Prompt (...):" o "Prompt X:"
     block_start_regex = re.compile(
-        r"^\s*(Fase \d+[:\s].*|(\d+\.\d+|\d+)\s*Prompt\s*\(?[^)]*\)?[:\s]|Prompt\s*\d*[:\s])", 
+        r"^\s*(Fase \d+[:\s].*|(\d+\.\d+|\d+)\s*Prompt\s*\(?[^)]*\)?[:\s]|Prompt\s*\d*[:\s])",
         re.IGNORECASE
     )
-    
+
     intro_lines = []
     current_block_content = []
     intro_ended = False
@@ -36,7 +37,8 @@ def extract_prompts_to_markdown(docx_path: str, md_path: str):
             if intro_lines:
                 output_md_lines.append("# Introducción\\n")
                 output_md_lines.append("\\n".join(intro_lines).strip() + "\\n")
-            current_block_content = [line] # Iniciar el primer bloque de prompt/fase
+            # Iniciar el primer bloque de prompt/fase
+            current_block_content = [line]
         elif intro_ended:
             if block_start_regex.match(stripped_line):
                 # Guardar el bloque anterior
@@ -46,11 +48,11 @@ def extract_prompts_to_markdown(docx_path: str, md_path: str):
                     output_md_lines.append(f"## {title}\\n")
                     if content:
                         output_md_lines.append(content + "\\n")
-                current_block_content = [line] # Iniciar nuevo bloque
-            elif current_block_content: # Si ya estamos en un bloque, añadir línea
+                current_block_content = [line]  # Iniciar nuevo bloque
+            elif current_block_content:  # Si ya estamos en un bloque, añadir línea
                 current_block_content.append(line)
             # else: ignorar líneas vacías entre bloques si no se ha iniciado uno
-        else: # Acumular líneas de introducción
+        else:  # Acumular líneas de introducción
             intro_lines.append(line)
 
     # Guardar el último bloque de prompt/fase
@@ -60,10 +62,10 @@ def extract_prompts_to_markdown(docx_path: str, md_path: str):
         output_md_lines.append(f"## {title}\\n")
         if content:
             output_md_lines.append(content + "\\n")
-    elif not intro_ended and intro_lines: # Caso: todo el doc es introducción
+    elif not intro_ended and intro_lines:  # Caso: todo el doc es introducción
         output_md_lines.append("# Introducción\\n")
         output_md_lines.append("\\n".join(intro_lines).strip() + "\\n")
-                
+
     with open(md_path, "w", encoding="utf-8") as f:
         f.write("\\n".join(output_md_lines))
     return True

@@ -1,116 +1,152 @@
+"""Componente del área de chat, versión estable con input controlado."""
+
 import reflex as rx
-from asistente_legal_constitucional_con_ia.states.chat_state import ChatState
+from ..states.chat_state import ChatState
 
+# Constante para el color principal de la UI del chat
+ACCENT_COLOR = "indigo"
 
-# message_bubble con distinción usuario/bot y botón de copiar para el bot
 def message_bubble(message: rx.Var[dict]) -> rx.Component:
+    """Crea una burbuja de mensaje con estilo diferenciado."""
     is_user = message["role"] == "user"
-    
-    # Contenido del mensaje renderizado con Markdown
-    # Cambiado a text-[20px] para un tamaño de fuente de 20px
-    content_markdown = rx.markdown(
-        message["content"],
-        class_name="prose text-[20px] max-w-none break-words", 
-    )
-
-    # Burbuja del Usuario
-    user_bubble_layout = rx.el.div(
-        rx.icon("user", class_name="text-indigo-500", size=24, flex_shrink=0),
-        rx.el.div(
-            content_markdown,
-            class_name="bg-indigo-400 text-white rounded-l-xl rounded-t-xl p-3", # Cambiado bg-indigo-500 a bg-indigo-400
-        ),
-        class_name="flex justify-end items-start gap-2",
-        # Ocultar si no es mensaje de usuario
-        style=rx.cond(~is_user, {"display": "none"}, {}),
-    )
-
-    # Burbuja del Bot (con botón de copiar)
-    bot_bubble_layout = rx.el.div(
-        rx.icon("bot", class_name="text-green-600", size=24, flex_shrink=0),
-        rx.el.div(
-            content_markdown,
-            # Botón de copiar
-            rx.button(
-                rx.icon("copy", size=16),
-                on_click=rx.set_clipboard(message["content"]),
-                size="1", # Botón pequeño
-                variant="ghost", # Menos intrusivo
-                color_scheme="gray",
-                class_name="mt-2 ml-auto block", # Margen superior, alineado a la derecha del contenido
-                title="Copiar texto",
+    return rx.box(
+        rx.hstack(
+            # Volvemos a los avatares simples para garantizar estabilidad
+            rx.avatar(
+                fallback=rx.cond(is_user, "U", "AI"),
+                size="2",
+                color_scheme=rx.cond(is_user, ACCENT_COLOR, "green"),
+                variant="solid",
+                flex_shrink="0",  # Avatar no se encoge
             ),
-            # Fondo gris claro para el bot, para contraste con el fondo índigo del chat_area
-            class_name="bg-gray-100 text-gray-800 rounded-r-xl rounded-t-xl p-3 w-full", 
-        ),
-        class_name="flex justify-start items-start gap-2",
-        # Ocultar si es mensaje de usuario
-        style=rx.cond(is_user, {"display": "none"}, {}),
-    )
-
-    # Devolver ambas layouts. CSS controlará la visibilidad.
-    return rx.fragment(
-        user_bubble_layout,
-        bot_bubble_layout,
-    )
-
-
-# def chat_input() -> rx.Component: ... # Esta función parece estar sin usar
-
-def chat_area() -> rx.Component:
-    """Chat con lista de mensajes y caja de input funcional, sin condicionales complejos."""
-    return rx.el.main(
-        rx.auto_scroll( # rx.auto_scroll ahora es el contenedor scrollable
-            rx.foreach(ChatState.messages, message_bubble),
-            class_name="space-y-4 flex-1 p-6 bg-indigo-100", # Clases para scroll y estilo
-            id="chat-history",
-        ),
-        rx.el.div(
-            rx.el.form(
-                rx.el.input(
-                    name="prompt",
-                    id="chat-input-box", # El ID al que apuntamos
-                    placeholder="Escribe tu consulta aquí...",
-                    disabled=ChatState.processing,
-                    # Cambiado a text-[20px] para un tamaño de fuente de 20px
-                    class_name="flex-1 p-3 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[20px]",
+            rx.box(
+                rx.markdown(
+                    message["content"],
+                    class_name="prose prose-sm max-w-none break-words",
                 ),
-                rx.el.button(
-                    rx.box( 
-                        rx.icon("send", size=20, style=rx.cond(ChatState.processing, {"display": "none"}, {"display": "inline"})),
-                        rx.spinner(size="1", style=rx.cond(~ChatState.processing, {"display": "none"}, {"display": "inline"})),
+                rx.cond(
+                    ~is_user,
+                    rx.icon_button(
+                        "copy",
+                        on_click=rx.set_clipboard(message["content"]),
+                        size="1", variant="ghost", color_scheme="gray",
+                        class_name="absolute top-2 right-2 opacity-50 hover:opacity-100 transition-opacity",
+                        title="Copiar texto",
+                    ),
+                ),
+                padding_x="1em",
+                padding_y="0.75em",
+                border_radius="var(--radius-4)",
+                bg=rx.cond(is_user, f"var(--{ACCENT_COLOR}-3)", "var(--gray-2)"),
+                color=rx.cond(is_user, f"var(--{ACCENT_COLOR}-12)", "var(--gray-12)"),
+                position="relative",
+                max_width="85%",
+                min_width="0",  # Permite que se encoja
+                word_wrap="break-word",
+                overflow_wrap="break-word",
+                style={
+                    "word-break": "break-word",
+                    "overflow-wrap": "break-word",
+                    "hyphens": "auto",
+                },
+            ),
+            spacing="3",
+            align_items="start",
+            flex_direction=rx.cond(is_user, "row-reverse", "row"),
+            width="100%",
+            min_width="0",  # Permite que el hstack se encoja
+        ),
+        width="100%",
+        min_width="0",
+        padding_x="0.5rem",  # Pequeño padding lateral
+    )
+
+def chat_input_area() -> rx.Component:
+    """Área de entrada de texto con soporte para texto largo."""
+    return rx.box(
+        rx.form(
+            rx.hstack(
+                rx.text_area(
+                    name="prompt",
+                    id="chat-input-box",
+                    placeholder="Escribe tu pregunta aquí... para enviar pulsa ➤",
+                    value=ChatState.current_question,
+                    on_change=ChatState.set_current_question,
+                    disabled=ChatState.processing,
+                    resize="vertical",
+                    min_height="60px",
+                    max_height="200px",
+                    py="0.5em",
+                    class_name="flex-1 border-0 focus:outline-none focus:ring-0 bg-transparent",
+                    style={
+                        "white-space": "pre-wrap",
+                        "word-wrap": "break-word", 
+                        "overflow-wrap": "break-word",
+                    },
+                ),
+                rx.icon_button(
+                    rx.cond(
+                        ChatState.processing,
+                        rx.spinner(size="3"),
+                        rx.icon("send", size=20)
                     ),
                     type="submit",
-                    disabled=ChatState.processing,
-                    class_name="p-3 bg-indigo-600 text-white rounded-r-lg hover:bg-indigo-700 disabled:bg-indigo-300 flex items-center justify-center w-[50px]",
+                    disabled=ChatState.processing | (ChatState.current_question.strip() == ""),
+                    size="3",
+                    color_scheme=ACCENT_COLOR,
                 ),
-                # REMOVER el rx.focus(...) incorrecto de aquí
-                on_submit=ChatState.send_message,
-                reset_on_submit=True,
-                class_name="flex",
+                align_items="end",
+                spacing="3",
             ),
-            class_name="p-4 border-t",
+            on_submit=ChatState.send_message,
+            reset_on_submit=False,
+            width="100%",
         ),
-        # Añadir rx.script condicional aquí
-        rx.cond(
-            ChatState.focus_chat_input,
-            rx.script(f"document.getElementById('chat-input-box')?.focus();"),
-            rx.fragment() # Renderizar nada si no se debe enfocar
-        ),
-        class_name="flex-1 flex flex-col h-full min-h-0",
+        padding_x="1em",
+        padding_y="0.5em",
+        border="1px solid var(--gray-4)",
+        border_radius="var(--radius-4)",
+        bg="white",
+        position="sticky",
+        bottom="1em",
+        width="calc(100% - 2em)",
+        margin_x="1em",
+        margin_bottom="1em",
+        box_shadow="0 0 15px rgba(0,0,0,0.05)",
     )
 
+def chat_area() -> rx.Component:
+    """Área principal del chat con autoscroll automático y sin desbordamiento horizontal."""
+    return rx.vstack(
+        rx.box(
+            rx.foreach(ChatState.messages, message_bubble),
+            id="chat-messages-container",
+            padding_x="1rem",
+            padding_y="1rem",
+            width="100%",
+            flex_grow=1,
+            overflow_y="auto",
+            overflow_x="hidden",  # Previene scroll horizontal
+            style={
+                "scroll-behavior": "smooth",
+                "display": "flex",
+                "flex-direction": "column",
+                "max-width": "100%",  # Asegura que no exceda el contenedor
+            },
+        ),
+        chat_input_area(),
+        spacing="0",
+        height="100%",
+        width="100%",
+        max_width="100%",  # Previene desbordamiento del contenedor principal
+        align_items="stretch",
+    )
 
 def chat() -> rx.Component:
-    return rx.el.div(
-        rx.el.div( # Sección de subida de archivos RESTAURADA
-            rx.el.h2("Sube tus archivos para análisis", class_name="text-xl font-semibold mb-2"),
-            rx.el.div(
-                # Aquí puedes usar el uploader si tienes uno, por ejemplo:
-                # file_uploader(),
-                class_name="mb-4"
-            ),
-        ),
+    """Componente principal de chat exportado."""
+    return rx.box(
         chat_area(),
-        class_name="flex-1 h-full bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-4"
+        height="100vh",
+        width="100%",
+        class_name="bg-gray-50",
     )

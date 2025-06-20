@@ -2,39 +2,50 @@
 import reflex as rx
 from asistente_legal_constitucional_con_ia.states.chat_state import ChatState
 
+# ¡CORRECCIÓN! Usamos "gray" que es un color válido.
+INFO_TEXT_COLOR = "gray" 
 
 def file_list() -> rx.Component:
-    archivos = ChatState.file_info_list[-3:]
+    """Muestra la lista de archivos recientes con estilo unificado."""
+    archivos = ChatState.file_info_list
     hay_archivos = archivos.length() > 0
 
-    def file_row(f):
+    def file_row(f: rx.Var[dict]) -> rx.Component:
+        """Renderiza una fila de archivo con estilo consistente."""
         return rx.hstack(
-            rx.text(f["filename"], font_size="sm", flex=1),
-            rx.button(
-                "🗑️",
-                size="1",
-                color_scheme="gray",
-                on_click=ChatState.delete_file(f["file_id"]),
-                title="Eliminar archivo",
+            rx.icon("file-text", size=16, color_scheme=INFO_TEXT_COLOR, flex_shrink=0),
+            rx.text(
+                f["filename"],
+                size="2",
+                color_scheme=INFO_TEXT_COLOR, # Ahora usa "gray"
+                flex_grow=1,
+                white_space="nowrap",
+                overflow="hidden",
+                text_overflow="ellipsis",
             ),
-            spacing='4',
-            width="100%",
-            mb=4  # Separación de 2px entre filas
+            rx.icon_button(
+                "trash-2", size="1", color_scheme="gray", variant="ghost",
+                on_click=ChatState.delete_file(f["file_id"]),
+                title="Eliminar archivo", cursor="pointer",
+            ),
+            spacing='3', width="100%", align_items="center",
         )
 
     return rx.box(
-        rx.text("Archivos recientes:", font_weight="bold", mb=2),
+        rx.heading(
+            "Archivos Recientes", size="3", weight="medium",
+            color_scheme="gray", margin_bottom="0.5em",
+        ),
         rx.vstack(
             rx.foreach(archivos, file_row),
-            # Siempre renderizar el texto "No hay archivos", pero ocultarlo si hay archivos.
-            rx.text(
-                "No hay archivos", 
-                font_size="sm", 
-                color="gray",
-                style=rx.cond(hay_archivos, {"display": "none"}, {}) # Ocultar si hay archivos
+            rx.cond(
+                ~hay_archivos,
+                rx.text(
+                    "No hay archivos subidos.", size="2", color_scheme="gray",
+                    font_style="italic", text_align="center", padding_y="1em",
+                )
             ),
-            spacing="4",   # Espacio vertical entre filas
-            width="100%",
+            spacing="2", width="100%",
         ),
-        mt=4,
+        width="100%",
     )

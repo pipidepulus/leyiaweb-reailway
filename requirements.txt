@@ -9,4 +9,4 @@ beautifulsoup4
 requests
 lxml
 python-dotenv
-reflex-local-auth
+reflex-clerk-api

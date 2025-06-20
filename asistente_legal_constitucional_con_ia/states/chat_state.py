@@ -51,13 +51,49 @@ class ChatState(rx.State):
     streaming: bool = False
     thinking_seconds: int = 0
     upload_error: str = ""
-    focus_chat_input: bool = False # NUEVA VARIABLE
+    focus_chat_input: bool = False
+    
+    # ÚNICO CAMBIO: Añadimos esta variable para el input controlado
+    current_question: str = ""
+    
+    # Variables que estaban en tu código original, las mantenemos por si acaso
+    chat_history: list = []
+    current_answer: str = ""
+    error_message: str = ""
+    is_uploading: bool = False
+    uploaded_file_name: str = ""
+    file_context: str = ""
 
     @staticmethod
     def get_client(api_key: str):
         if api_key:
             return OpenAI(api_key=api_key)
         return None
+
+    def scroll_to_bottom(self):
+        """Hacer scroll al final del chat de forma suave"""
+        return rx.call_script("""
+            const container = document.getElementById('chat-messages-container');
+            if (container) {
+                // Usar requestAnimationFrame para mejor performance durante streaming
+                requestAnimationFrame(() => {
+                    container.scrollTop = container.scrollHeight;
+                });
+            }
+        """)
+
+    def focus_input(self):
+        """Posicionar el cursor en el input del usuario"""
+        return rx.call_script("""
+            setTimeout(() => {
+                const input = document.getElementById('chat-input-box');
+                if (input) {
+                    input.focus();
+                    // Posicionar cursor al final del texto
+                    input.setSelectionRange(input.value.length, input.value.length);
+                }
+            }, 200);
+        """)
 
     @rx.var
     def has_api_keys(self) -> bool:
@@ -78,7 +114,8 @@ class ChatState(rx.State):
     async def handle_upload(
         self, files: list[rx.UploadFile]
     ):
-        logger.info(f"handle_upload: {len(files) if files else 0} archivos recibidos")
+        logger.info(
+            f"handle_upload: {len(files) if files else 0} archivos recibidos")
         self.upload_error = ""
         if not files:
             logger.warning("No se seleccionaron archivos.")
@@ -101,7 +138,6 @@ class ChatState(rx.State):
             self.uploading = False
             return
         for i, file in enumerate(files):
-            # Validar si el archivo ya fue subido por nombre
             if any(f["filename"] == file.name for f in self.file_info_list):
                 logger.warning(f"Archivo duplicado: {file.name}")
                 self.upload_error = f"El archivo '{file.name}' ya fue subido."
@@ -111,15 +147,14 @@ class ChatState(rx.State):
                 logger.info(f"Procesando archivo: {file.name}")
                 upload_data = await file.read()
                 ocr_progress_ref = self
+
                 def progress_callback(page, total):
                     ocr_progress_ref.ocr_progress = f"OCR página {page}/{total} de '{file.name}'"
-                # Extracción directa
                 extracted_text = extract_text_from_bytes(
                     upload_data, file.name
                 )
-                # Si fue PDF y la extracción directa no obtuvo suficiente texto, hacer OCR aquí
                 if file.name.lower().endswith(".pdf") and (not extracted_text or len(extracted_text.strip()) < 100):
-                    self.uploading = False  # Detener mensaje de subida antes de mostrar OCR
+                    self.uploading = False
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                         tmp.write(upload_data)
                         tmp_path = tmp.name
@@ -132,17 +167,18 @@ class ChatState(rx.State):
                             logger.info(f"[UI FEEDBACK] {self.ocr_progress}")
                             yield
                             await asyncio.sleep(0.5)
-                            ocr_text += pytesseract.image_to_string(image, lang="spa+eng") + "\n"
+                            ocr_text += pytesseract.image_to_string(
+                                image, lang="spa+eng") + "\n"
                         extracted_text = ocr_text
                     finally:
                         os.remove(tmp_path)
-                # Limpiar ocr_progress solo al final
                 self.ocr_progress = ""
                 if (
                     not extracted_text
                     or not extracted_text.strip()
                 ):
-                    logger.warning(f"No se pudo extraer texto de '{file.name}'.")
+                    logger.warning(
+                        f"No se pudo extraer texto de '{file.name}'.")
                     self.upload_error = f"No se pudo extraer texto de '{file.name}'."
                     yield rx.toast.warning(
                         f"No se pudo extraer texto de '{file.name}'."
@@ -167,7 +203,8 @@ class ChatState(rx.State):
                             "filename": file.name,
                         }
                     )
-                    logger.info(f"'{file.name}' procesado y subido con id {response.id}.")
+                    logger.info(
+                        f"'{file.name}' procesado y subido con id {response.id}.")
                     self.upload_error = ""
                     yield rx.toast.success(
                         f"'{file.name}' procesado y subido."
@@ -242,64 +279,76 @@ class ChatState(rx.State):
                     "No se pudieron obtener los proyectos."
                 )
 
-    @rx.event(background=True) # Convertido a tarea de fondo
+    @rx.event(background=True)
     async def thinking_timer(self):
-        async with self: # Envolver la inicialización en el contexto asíncrono
+        async with self:
             self.thinking_seconds = 0
-        logger.info(f"thinking_timer: Iniciado (background). self.processing={self.processing}")
-        while self.processing: # self.processing se lee, no se modifica aquí directamente en el bucle while
-            await asyncio.sleep(1) 
-            async with self: # Envolver la modificación de estado en el contexto asíncrono
+        logger.info(
+            f"thinking_timer: Iniciado (background). self.processing={self.processing}")
+        while self.processing:
+            await asyncio.sleep(1)
+            async with self:
                 self.thinking_seconds += 1
-        logger.info(f"thinking_timer: Detenido (background). self.processing={self.processing}, self.thinking_seconds={self.thinking_seconds}s")
+        logger.info(
+            f"thinking_timer: Detenido (background). self.processing={self.processing}, self.thinking_seconds={self.thinking_seconds}s")
 
     @rx.event
     def send_message(self, form_data: dict):
-        user_prompt = form_data.get("prompt", "").strip()
-        logger.info(f"send_message: INICIO. prompt='{user_prompt}', current self.processing={self.processing}")
+        # ÚNICO CAMBIO: Usamos self.current_question en lugar de form_data
+        user_prompt = self.current_question.strip()
+        logger.info(
+            f"send_message: INICIO. prompt='{user_prompt}', current self.processing={self.processing}")
         if not user_prompt or self.processing:
             logger.warning("Prompt vacío o ya procesando.")
             return
+        
+        # Limpiamos el input en la UI
+        self.current_question = ""
+        
         if not self.has_api_keys:
-            logger.error("Las credenciales de OpenAI no están configuradas en el servidor.")
+            logger.error(
+                "Las credenciales de OpenAI no están configuradas en el servidor.")
             return rx.toast.error(
                 "Las credenciales de OpenAI no están configuradas en el servidor."
             )
         self.processing = True
         self.streaming = True
         self.streaming_response = ""
-        self.thinking_seconds = 0 # Esto está bien aquí, send_message no es background
+        self.thinking_seconds = 0
         self.messages.append(
             {"role": "user", "content": user_prompt}
         )
         self.messages.append(
             {"role": "assistant", "content": "Estoy pensando..."}
         )
-        logger.info("send_message: Disparando thinking_timer y generate_response_streaming. self.processing ahora es True.")
+        logger.info(
+            "send_message: Disparando thinking_timer y generate_response_streaming. self.processing ahora es True.")
+        yield ChatState.scroll_to_bottom  # Autoscroll al agregar mensaje del usuario
         yield ChatState.thinking_timer
         yield
-        yield ChatState.generate_response_streaming # Volvemos a generate_response_streaming
-        # yield ChatState.simple_background_test # Comentamos la prueba
+        yield ChatState.generate_response_streaming
         logger.info("send_message: FIN (eventos en segundo plano iniciados).")
 
     @rx.event(background=True)
     async def simple_background_test(self):
         logger.info("simple_background_test: INICIO Y FIN")
         async with self:
-            # Simular un pequeño trabajo y resetear processing para la prueba
             self.messages[-1]["content"] = "Respuesta de prueba de simple_background_test"
             self.processing = False
             self.streaming = False
             self.thinking_seconds = 0
-        logger.info(f"simple_background_test: self.processing ahora es {self.processing}")
+        logger.info(
+            f"simple_background_test: self.processing ahora es {self.processing}")
 
     @rx.event(background=True)
     async def generate_response_streaming(self):
-        logger.info(f"generate_response_streaming: INICIO. self.processing={self.processing}, self.thread_id={self.thread_id}")
+        logger.info(
+            f"generate_response_streaming: INICIO. self.processing={self.processing}, self.thread_id={self.thread_id}")
         client = ChatState.get_client(self.openai_api_key)
-        
+
         try:
-            last_user_message = next((m["content"] for m in reversed(self.messages) if m["role"] == "user"), None)
+            last_user_message = next((m["content"] for m in reversed(
+                self.messages) if m["role"] == "user"), None)
             if not last_user_message:
                 logger.error("No se encontró el último mensaje del usuario.")
                 async with self:
@@ -313,16 +362,18 @@ class ChatState(rx.State):
                 thread = await asyncio.to_thread(client.beta.threads.create)
                 async with self:
                     self.thread_id = thread.id
-            logger.info(f"generate_response_streaming: thread_id actualizado a {self.thread_id}")
+            logger.info(
+                f"generate_response_streaming: thread_id actualizado a {self.thread_id}")
 
             attachments_for_message = []
             if self.file_info_list:
                 files_to_attach = self.file_info_list[-3:]
                 attachments_for_message = [
-                    {"file_id": fi["file_id"], "tools": [{"type": "file_search"}]} 
+                    {"file_id": fi["file_id"], "tools": [
+                        {"type": "file_search"}]}
                     for fi in files_to_attach
                 ]
-            
+
             await asyncio.to_thread(
                 client.beta.threads.messages.create,
                 thread_id=self.thread_id,
@@ -330,16 +381,17 @@ class ChatState(rx.State):
                 content=last_user_message,
                 attachments=attachments_for_message,
             )
-            logger.info("generate_response_streaming: Mensaje de usuario creado en el thread.")
+            logger.info(
+                "generate_response_streaming: Mensaje de usuario creado en el thread.")
 
-            # Usar stream=True para la respuesta del asistente
             run_stream = await asyncio.to_thread(
                 client.beta.threads.runs.create,
                 thread_id=self.thread_id,
                 assistant_id=self.assistant_id,
                 stream=True
             )
-            logger.info("generate_response_streaming: Run creado con stream=True.")
+            logger.info(
+                "generate_response_streaming: Run creado con stream=True.")
 
             first_chunk_processed = False
             accumulated_response = ""
@@ -351,43 +403,27 @@ class ChatState(rx.State):
                         if text_chunk:
                             async with self:
                                 if not first_chunk_processed:
-                                    self.messages[-1]["content"] = "" # Limpiar "Estoy pensando..."
+                                    self.messages[-1]["content"] = ""
                                     self.streaming_response = ""
                                     first_chunk_processed = True
                                 accumulated_response += text_chunk
-                                self.streaming_response = accumulated_response # Actualizar para el estado
-                                self.messages[-1]["content"] = accumulated_response # Actualizar para la UI
-                            yield # Actualizar UI con el nuevo chunk
-                
+                                self.streaming_response = accumulated_response
+                                self.messages[-1]["content"] = accumulated_response
+                            yield
+                            # Autoscroll durante el streaming cada pocos chunks
+                            if len(accumulated_response) % 100 == 0:  # Cada ~100 caracteres
+                                yield ChatState.scroll_to_bottom
+
                 elif event.event == 'thread.run.requires_action':
-                    logger.info(f"Run requires action: {event.data.required_action.submit_tool_outputs.tool_calls}")
-                    # Aquí se manejarían las tool calls. Por ahora, si file_search es la única,
-                    # OpenAI debería manejarla internamente si los archivos están adjuntos.
-                    # Si se necesitan enviar tool_outputs explícitos:
-                    # run_id = event.data.id
-                    # tool_calls = event.data.required_action.submit_tool_outputs.tool_calls
-                    # tool_outputs = []
-                    # for call in tool_calls:
-                    #    # Procesar llamada y generar output
-                    #    tool_outputs.append({"tool_call_id": call.id, "output": "..."})
-                    #
-                    # # Re-subir el stream con los outputs
-                    # run_stream = await asyncio.to_thread(
-                    # client.beta.threads.runs.submit_tool_outputs,
-                    # thread_id=self.thread_id,
-                    # run_id=run_id,
-                    # tool_outputs=tool_outputs,
-                    # stream=True
-                    # )
-                    # logger.info("Tool outputs submitted, continuing stream.")
-                    # continue # Para continuar procesando el nuevo stream
-                    pass # Por ahora, asumimos que file_search se maneja sin intervención explícita aquí.
+                    logger.info(
+                        f"Run requires action: {event.data.required_action.submit_tool_outputs.tool_calls}")
+                    pass
 
                 elif event.event == 'thread.run.completed':
                     logger.info("Stream: Run completed.")
-                    async with self: # Asegurar que el estado final de streaming_response sea el completo
+                    async with self:
                         self.streaming_response = accumulated_response
-                    break 
+                    break
                 elif event.event == 'thread.run.failed':
                     logger.error(f"Stream: Run failed. Run data: {event.data}")
                     error_message = "Error del asistente."
@@ -396,49 +432,72 @@ class ChatState(rx.State):
                     async with self:
                         self.messages[-1]["content"] = error_message
                     break
-                elif event.event == 'error': # Evento de error genérico del stream
+                elif event.event == 'error':
                     logger.error(f"Stream: Error event: {event.data}")
                     async with self:
                         self.messages[-1]["content"] = "Error en el stream del asistente."
                     break
-            
-            logger.info("generate_response_streaming: Streaming con iteración manual completado.")
+
+            logger.info(
+                "generate_response_streaming: Streaming con iteración manual completado.")
 
         except APIError as e:
             logger.error(f"Error de API de OpenAI: {e.message}")
             async with self:
                 self.messages[-1]["content"] = f"Error de API: {e.message}"
         except Exception as e:
-            logger.error(f"Error inesperado en generate_response_streaming: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error inesperado en generate_response_streaming: {str(e)}", exc_info=True)
             async with self:
                 self.messages[-1]["content"] = f"Error inesperado: {str(e)}"
         finally:
-            logger.info(f"generate_response_streaming: BLOQUE FINALLY. self.processing ANTES: {self.processing}, self.streaming ANTES: {self.streaming}")
+            logger.info(
+                f"generate_response_streaming: BLOQUE FINALLY. self.processing ANTES: {self.processing}, self.streaming ANTES: {self.streaming}")
             async with self:
                 self.processing = False
-                self.streaming = False 
+                self.streaming = False
                 self.thinking_seconds = 0
-                self.focus_chat_input = True # ACTIVAR EL DISPARADOR
-            yield 
-            
-            # Programar el reseteo del disparador
+                self.focus_chat_input = True
+            yield
+            # Hacer autoscroll al final después de completar la respuesta
+            yield ChatState.scroll_to_bottom
+            # Posicionar cursor en el input del usuario
+            yield ChatState.focus_input
             yield ChatState.reset_focus_trigger
-            # REMOVER el rx.call_script anterior
-            logger.info(f"generate_response_streaming: FIN. self.processing DESPUÉS: {self.processing}, self.streaming DESPUÉS: {self.streaming}")
+            logger.info(
+                f"generate_response_streaming: FIN. self.processing DESPUÉS: {self.processing}, self.streaming DESPUÉS: {self.streaming}")
 
-    @rx.event # No longer async, no async with self
+    @rx.event
     def reset_focus_trigger(self):
-        """Resetea el disparador de enfoque para que pueda ser usado de nuevo."""
         self.focus_chat_input = False
-        # No yield here, direct state modification
 
     def _get_available_functions(self) -> list[dict]:
-        """
-        Devuelve un diccionario de funciones que el asistente puede llamar.
-        Por ahora, solo tenemos 'file_search' que es manejado internamente por OpenAI.
-        Si tuviéramos funciones personalizadas (custom tools), se mapearían aquí.
-        """
-        logger.info("Llamando a _get_available_functions. Actualmente no hay funciones personalizadas mapeadas.")
+        logger.info(
+            "Llamando a _get_available_functions. Actualmente no hay funciones personalizadas mapeadas.")
         return {}
 
-    # Si tienes otras funciones de estado o métodos, van aquí...
+    def _get_context(self) -> str:
+        return ""
+
+    @rx.event
+    def limpiar_chat(self):
+        """Reinicia el estado del chat y los archivos a sus valores iniciales."""
+        self.messages = []
+        self.thread_id = None
+        self.file_info_list = []
+        self.processing = False
+        self.uploading = False
+        self.upload_progress = 0
+        self.ocr_progress = ""
+        self.streaming_response = ""
+        self.streaming = False
+        self.thinking_seconds = 0
+        self.upload_error = ""
+        self.focus_chat_input = False
+        self.current_question = ""
+        logger.info("[DEBUG] ChatState.limpiar_chat ejecutado y estado reseteado.")
+
+    @rx.event
+    def limpiar_chat_y_redirigir(self):
+        self.limpiar_chat() 
+        return rx.redirect("/")

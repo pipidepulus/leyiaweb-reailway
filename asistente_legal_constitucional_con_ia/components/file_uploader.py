@@ -1,115 +1,95 @@
-# Componente para subir archivos
-import reflex as rx
-from asistente_legal_constitucional_con_ia.states.chat_state import ChatState
+"""Componente para subir archivos, con un diseño compacto y funcional."""
 
+import reflex as rx
+from ..states.chat_state import ChatState
+
+# Constantes para mantener la consistencia
 MAX_FILES = 3
 SUPPORTED_TYPES = ["pdf", "docx", "txt"]
-
+ACCENT_COLOR = "indigo"
+# ¡CORRECCIÓN! Usamos "gray" que es un color válido para textos informativos.
+INFO_TEXT_COLOR = "gray" 
 
 def file_uploader() -> rx.Component:
-    selected_files = rx.selected_files("sidebar_upload")
-    archivos_usados = ChatState.file_info_list.length() if hasattr(ChatState.file_info_list, 'length') else len(ChatState.file_info_list)
-    disponibles = MAX_FILES - archivos_usados
+    """Renderiza un widget de subida de archivos con tipografía y colores consistentes."""
+    selected_files_var = rx.selected_files("sidebar_upload")
+    has_selected_files = selected_files_var.length() > 0
+    
+    files_used_count = ChatState.file_info_list.length()
+    files_available_count = MAX_FILES - files_used_count
+    can_upload = files_available_count > 0
+    
+    is_processing_file = ChatState.uploading | (ChatState.ocr_progress != "")
 
     return rx.vstack(
-        rx.text(f"Archivos soportados: {', '.join(SUPPORTED_TYPES).upper()} | {archivos_usados}/{MAX_FILES} usados, {disponibles} disponibles", font_size="sm", color="blue", mb=1),
-        
-        rx.upload(
-            rx.text(
-                "Selecciona archivos", 
-                color="cyan-700", 
-                font_weight="bold", 
-                font_size="xs", 
-                line_height="1"  # Added line_height
-            ),
-            id="sidebar_upload",
-            accept=",".join(f".{ext}" for ext in SUPPORTED_TYPES),
-            multiple=False,
-            disabled=disponibles <= 0,
-            display="flex", 
-            align_items="center", 
-            justify_content="center",
-            class_name="bg-gray-200 hover:bg-gray-300 cursor-pointer", 
-            border="2px solid #888888",
-            border_radius="8px",        
-            align_self="flex-start", 
-            height="20px", # Reverted to explicit height
-            # Removed: min_width, min_height, background_color, cursor, _hover, white_space from text
-        ),
-        
-        rx.text(rx.cond(selected_files.length() > 0, f"Seleccionado: {selected_files[0]}", ""), color="blue", mb=1),
-        rx.button(
-            "Procesar archivo",
+        # --- SECCIÓN DE INFORMACIÓN CON ESTILO CORREGIDO ---
+        rx.text(
+            "Soportados: PDF, DOCX, TXT (hasta 30 pág. escaneadas)",
             size="2",
-            color_scheme="teal",
-            on_click=[
-                ChatState.handle_upload(rx.upload_files("sidebar_upload")),
-                rx.call_script("window.document.getElementById('sidebar_upload').value = ''")
-            ],
-            mt=2,
-            disabled=(selected_files.length() == 0) | (disponibles <= 0),
+            color_scheme=INFO_TEXT_COLOR, # Ahora usa "gray"
+            weight="medium",
         ),
-        # New Vstack for feedback messages
+        rx.text(
+            f"{files_used_count}/{MAX_FILES} usados, {files_available_count} disponibles",
+            size="2",
+            color_scheme=INFO_TEXT_COLOR, # Ahora usa "gray"
+            weight="medium",
+        ),
+        
+        # --- SECCIÓN DE ACCIONES (BOTONES) - Sin cambios ---
         rx.vstack(
-            rx.text(
-                rx.cond(
-                    ChatState.ocr_progress != "",
-                    ChatState.ocr_progress,
-                    rx.cond(
-                        ChatState.uploading,
-                        "Subiendo archivo...",
-                        "" # Empty string when no message
-                    )
+            rx.upload(
+                rx.button(
+                    "Subir Archivo", color_scheme=ACCENT_COLOR, size="2",
+                    variant="soft", width="100%",
                 ),
-                color="blue",
-                font_weight="bold",
-                bg=rx.cond(ChatState.ocr_progress != "", "#FFF3CD", rx.cond(ChatState.uploading, "#D1ECF1", "transparent")),
-                padding="8px",
-                border_radius="6px",
-                width="100%", # Ensure text takes full width for background
-                style=rx.cond((ChatState.ocr_progress == "") & (~ChatState.uploading), {"display": "none"}, {})
+                id="sidebar_upload", border_radius="var(--radius-3)",
+                border=f"1px dashed var(--{ACCENT_COLOR}-7)", padding="0.25rem",
+                width="100%", cursor="pointer",
+                _hover={"background_color": f"var(--{ACCENT_COLOR}-2)", "border_color": f"var(--{ACCENT_COLOR}-8)"},
+                accept={"application/pdf": [".pdf"], "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"], "text/plain": [".txt"]},
+                multiple=False, disabled=~can_upload | is_processing_file,
             ),
-            rx.hstack(
-                rx.spinner(color="blue", size="2"),
-                rx.text(
-                    "Procesando archivo... (esto puede tardar varios minutos si es escaneado)",
-                    color="blue",
-                    # mt=2, # No longer needed here, parent vstack has spacing
-                    bg="#D1ECF1",
-                    padding="8px",
-                    border_radius="6px"
-                ),
-                spacing="2",
-                width="100%", # Ensure hstack takes full width for background
-                style=rx.cond(~ChatState.uploading, {"display": "none"}, {}) # This hstack is only for "Procesando"
+            rx.button(
+                rx.cond(is_processing_file, rx.spinner(size="2", color_scheme="white"), rx.icon("play", size=16)),
+                "Procesar Archivo", width="100%", size="2", variant="solid",
+                color_scheme=ACCENT_COLOR, disabled=~has_selected_files | ~can_upload | is_processing_file,
+                on_click=[ChatState.handle_upload(rx.upload_files("sidebar_upload")), rx.call_script("document.getElementById('sidebar_upload').value = ''")],
             ),
-            rx.text(
-                ChatState.upload_error,
-                color="red",
-                # mt=2, # No longer needed here
-                bg="#F8D7DA",
-                padding="8px",
-                border_radius="6px",
-                width="100%", # Ensure text takes full width for background
-                style=rx.cond(ChatState.upload_error == "", {"display": "none"}, {})
-            ),
-            rx.text(
-                rx.cond((ChatState.upload_progress == 100) & (ChatState.upload_error == ""), "Archivo subido y procesado exitosamente!", ""), 
-                color="green", 
-                font_weight="bold",
-                # mt=2, # No longer needed here
-                width="100%", # Ensure text takes full width for background
-                style=rx.cond(~((ChatState.upload_progress == 100) & (ChatState.upload_error == "")), {"display": "none"}, {})
-            ),
-            width="100%",
-            max_height="135px", # Max height for the message area, increased from 120px
-            overflow_y="auto",  # Scroll if messages exceed max_height
-            spacing="2",        # Spacing between messages
-            align_items="stretch", # Messages take full width
-            mt=3 # Margin from the 'Procesar archivo' button
+            spacing="3", width="100%", margin_top="0.5em",
         ),
-        bg="#e3e3ff",
-        min_height="350px", # Changed back from 280px to 350px
-        padding="16px",
-        border_radius="10px",
+
+        # --- SECCIÓN DE FEEDBACK CON ESTILO CORREGIDO ---
+        rx.vstack(
+            rx.cond(
+                ChatState.ocr_progress != "",
+                rx.box(
+                    rx.hstack(
+                        rx.spinner(color_scheme=ACCENT_COLOR),
+                        rx.text(ChatState.ocr_progress, size="2", weight="bold", color_scheme=ACCENT_COLOR),
+                        spacing="3", align="center",
+                    ),
+                    padding_y="0.5em",
+                ),
+                rx.vstack(
+                    rx.text(
+                        rx.cond(has_selected_files, f"Listo: {selected_files_var[0]}", "Selecciona un archivo para procesar."),
+                        size="2",
+                        # Aquí no usamos color_scheme="gray" porque "iris" se ve mejor para feedback positivo.
+                        # "iris" es un morado-azulado que contrasta bien.
+                        color_scheme="iris",
+                        mt="0.5em", height="1.5em", white_space="nowrap",
+                        overflow="hidden", text_overflow="ellipsis",
+                        width="100%", transition="all 0.3s ease",
+                    ),
+                    rx.cond(
+                        ChatState.upload_error != "",
+                        rx.badge(rx.icon("triangle-alert", size=14, margin_right="0.25em"), ChatState.upload_error, color_scheme="red", variant="soft", size="1"),
+                    ),
+                    spacing="2", width="100%",
+                )
+            ),
+            width="100%", align_items="start", min_height="3.5em", padding_top="0.5em",
+        ),
+        spacing="2", width="100%",
     )

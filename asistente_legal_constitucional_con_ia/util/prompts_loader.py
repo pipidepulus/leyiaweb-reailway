@@ -1,6 +1,7 @@
 import os
 from ..util.text_extraction import extract_text_from_bytes
 
+
 def extract_prompts_from_docx(docx_path: str):
     """
     Extrae los prompts y la introducción de un archivo DOCX.

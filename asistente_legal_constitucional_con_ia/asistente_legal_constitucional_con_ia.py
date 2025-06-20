@@ -1,46 +1,54 @@
+"""Archivo principal de la aplicación, ahora usando un layout centralizado."""
+
+from .pages.prompts_page import prompts_page
+from .pages.proyectos_page import proyectos_page
+from .pages.asistente_page import asistente_page
 import reflex as rx
-import reflex_local_auth
-from reflex_local_auth import LocalAuthState # Assuming LocalAuthState is correctly imported from here
-# from reflex_local_auth.local_auth import LocalAuth # Corrected import for LocalAuth - NOW COMMENTED
-from asistente_legal_constitucional_con_ia.pages.home_page import home_page
-from asistente_legal_constitucional_con_ia.pages.custom_register_page import register_page as custom_register_page
-from asistente_legal_constitucional_con_ia.pages.custom_login_page import login_page as custom_login_page # Import custom login page
-from asistente_legal_constitucional_con_ia.pages.asistente_page import asistente_page
-from asistente_legal_constitucional_con_ia.pages.proyectos_page import proyectos_page
-from asistente_legal_constitucional_con_ia.pages.prompts_page import prompts_page # Nueva importación
+import reflex_clerk_api as clerk
+from dotenv import load_dotenv
+from .components.layout import main_layout  # Importamos nuestro nuevo layout
+
+load_dotenv()
 
 app = rx.App()
 
-# Configura reflex-local-auth para que use su LocalUser interno por defecto
-# LocalAuth(app, login_route="/login", register_route="/register") # COMMENTED OUT
 
-app.add_page(
-    # reflex_local_auth.pages.login_page, # Use custom login page
-    custom_login_page,
-    route=reflex_local_auth.routes.LOGIN_ROUTE,
-    title="Login",
-)
-app.add_page(
-    custom_register_page,
-    route=reflex_local_auth.routes.REGISTER_ROUTE,
-    title="Registro",
-)
+@rx.page(route="/", title="Inicio")
+def index() -> rx.Component:
+    """La página de inicio, ahora envuelta en el layout principal."""
+    # Contenido específico de la página de inicio
+    content = rx.el.div(
+        rx.image(
+            src="/balanza.png",
+            alt="Balanza de la Justicia",
+            width="256px",
+            height="auto",
+            margin_bottom="1rem",
+        ),
+        rx.el.h1(
+            "Bienvenido al Asistente Legal Constitucional",
+            class_name="text-3xl font-bold mb-2",
+        ),
+        rx.el.p(
+            "Sistema especializado en análisis de jurisprudencia, leyes, "
+            "propuestas de leyes con ayuda de inteligencia artificial.",
+            class_name="text-lg text-gray-600 mb-4",
+        ),
+        rx.el.p(
+            "Selecciona una opción del menú para comenzar.",
+            class_name="text-lg text-gray-700 font-bold",
+        ),
+        class_name="flex flex-col items-center justify-center w-full h-full text-center",
+    )
+    # Envolvemos el contenido en el layout principal
+    return main_layout(content)
 
-app.add_page(
-    proyectos_page, 
-    route="/proyectos", 
-    title="Explorar Proyectos"
-)
 
-# Añadir prompts_page explícitamente
-app.add_page(
-    prompts_page,
-    route="/prompts",
-    title="Prompts"
-)
+# Añadimos las otras páginas. El layout se aplicará dentro de cada una.
+app.add_page(asistente_page)
+app.add_page(proyectos_page)
+app.add_page(prompts_page)
 
-# No agregues main_page ni home_page ni asistente_page aquí, el decorador @rx.page los registra automáticamente
-
-# from reflex_local_auth import LocalAuthState, LocalAuth # Ensure this line is removed or commented
-# from asistente_legal_constitucional_con_ia.models.user import LocalUser # This line is commented out
-from asistente_legal_constitucional_con_ia.states.auth_state import AuthState
+# Añadimos las páginas de Clerk necesarias para las rutas /sign-in y /sign-up
+clerk.add_sign_in_page(app)
+clerk.add_sign_up_page(app)
