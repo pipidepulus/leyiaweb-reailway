@@ -1,8 +1,7 @@
 # ruta: components/layout.py
 """
 Layout principal de la aplicación.
-NO incluye el ClerkProvider, ya que se inyecta globalmente
-con clerk.wrap_app() en el archivo principal.
+Corregido para usar el valor 'between' en la propiedad justify de HStack.
 """
 import reflex as rx
 import reflex_clerk_api as clerk
@@ -19,7 +18,6 @@ def navbar() -> rx.Component:
                 href="/",
             ),
             rx.spacer(),
-            # Estos componentes funcionan porque la app está envuelta.
             clerk.signed_in(
                 rx.hstack(
                     rx.link("Asistente", href="/asistente-page"),
@@ -42,7 +40,7 @@ def navbar() -> rx.Component:
                     align_items="center",
                 )
             ),
-            justify="space-between",
+            justify="between",  # <--- ¡CORREGIDO!
             align_items="center",
             width="100%",
             padding_x="1rem",
