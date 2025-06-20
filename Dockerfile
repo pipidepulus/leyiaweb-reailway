@@ -31,4 +31,4 @@ EXPOSE 8000
 # El comando para iniciar la aplicación.
 # Se usa --frontend-host y --backend-host para que la app sea accesible
 # desde fuera del contenedor.
-CMD ["reflex", "run", "--frontend-host", "0.0.0.0", "--backend-host", "0.0.0.0"]
+CMD ["reflex", "run", "--env", "prod", "--frontend-port", "3000", "--backend-port", "8000"]
