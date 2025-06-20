@@ -1,27 +1,25 @@
 # ruta: asistente_legal_constitucional_con_ia/asistente_legal_constitucional_con_ia.py
-"""Versión de la aplicación SIN Clerk para depuración final."""
+"""Archivo principal de la aplicación, restaurado y funcional SIN Clerk."""
 
 # --- Importaciones (SIN CLERK) ---
 import reflex as rx
 from dotenv import load_dotenv
 
-# Quita las importaciones de páginas que dependen de Clerk o del layout
-# from .pages.prompts_page import prompts_page
-# from .pages.proyectos_page import proyectos_page
-# from .pages.asistente_page import asistente_page
-# from .components.layout import main_layout # ¡IMPORTANTE! Quitamos el layout
+from .pages.prompts_page import prompts_page
+from .pages.proyectos_page import proyectos_page
+from .pages.asistente_page import asistente_page
+# NOTA: Hemos quitado 'import reflex_clerk_api' y 'import main_layout' por ahora.
 
 # --- Carga de Entorno y Definición de la App ---
 load_dotenv()
 app = rx.App()
 
-# --- Definición de la Página Principal (SIN EL LAYOUT) ---
+# --- Definición de la Página Principal (Index) ---
 @rx.page(route="/", title="Inicio")
 def index() -> rx.Component:
-    """La página de inicio, ahora sin el layout de Clerk."""
-    # Contenido específico de la página de inicio
-    # Este es tu código original, que está perfecto.
-    return rx.el.div(
+    """La página de inicio, ahora SIN el layout de Clerk."""
+    # Tu código de contenido es perfecto.
+    content = rx.el.div(
         rx.image(
             src="/balanza.png",
             alt="Balanza de la Justicia",
@@ -39,8 +37,20 @@ def index() -> rx.Component:
             class_name="text-lg text-gray-600 mb-4",
         ),
         rx.el.p(
-            "Prueba sin Clerk.",
+            "Funcionalidad base restaurada. Próximo paso: reintegrar autenticación.",
             class_name="text-lg text-gray-700 font-bold",
         ),
         class_name="flex flex-col items-center justify-center w-full h-full text-center",
     )
+    # Devolvemos el contenido directamente.
+    return content
+
+
+# --- Añadimos el resto de las páginas ---
+# Asumimos que estas páginas no dependen directamente del layout de Clerk.
+# Si lo hacen, tendrás que modificarlas temporalmente también.
+app.add_page(asistente_page)
+app.add_page(proyectos_page)
+app.add_page(prompts_page)
+
+# NOTA: Las líneas de 'clerk.add_..._page(app)' han sido eliminadas.

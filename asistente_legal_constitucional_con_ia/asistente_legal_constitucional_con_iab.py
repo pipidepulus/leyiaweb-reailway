@@ -54,15 +54,3 @@ app.add_page(prompts_page)
 clerk.add_sign_in_page(app)
 clerk.add_sign_up_page(app)
 
-# --- AÑADE LA NUEVA PÁGINA DE PRUEBA ---
-app = rx.App(
-   #theme=rx.theme(
-    #    appearance="light", has_background=True, radius="large", accent_color="teal"
-    #),
-    #plugins=[rx.plugins.TailwindV3Plugin()], # Mantenemos esto por ahora
-)
-
-# Registra SÓLO la página de prueba en la ruta principal
-#app.add_page(test_page, route="/") 
-
-#app.compile()
