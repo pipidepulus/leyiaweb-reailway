@@ -1,24 +1,34 @@
 # ruta: asistente_legal_constitucional_con_ia/asistente_legal_constitucional_con_ia.py
-"""Archivo principal de la aplicación, restaurado y funcional SIN Clerk."""
+"""
+Archivo principal de la aplicación, refactorizado para integrar Clerk
+de la forma recomendada por la documentación oficial.
+"""
 
-# --- Importaciones (SIN CLERK) ---
+# --- Importaciones ---
+import os
 import reflex as rx
+import reflex_clerk_api as clerk
 from dotenv import load_dotenv
 
+# Importaciones de tus páginas y el layout principal
 from .pages.prompts_page import prompts_page
 from .pages.proyectos_page import proyectos_page
 from .pages.asistente_page import asistente_page
-# NOTA: Hemos quitado 'import reflex_clerk_api' y 'import main_layout' por ahora.
+from .components.layout import main_layout
 
 # --- Carga de Entorno y Definición de la App ---
+# Carga las variables de entorno desde el archivo .env (para desarrollo local)
 load_dotenv()
+
+# Se define la aplicación UNA SOLA VEZ
 app = rx.App()
+
 
 # --- Definición de la Página Principal (Index) ---
 @rx.page(route="/", title="Inicio")
 def index() -> rx.Component:
-    """La página de inicio, ahora SIN el layout de Clerk."""
-    # Tu código de contenido es perfecto.
+    """La página de inicio, envuelta en el layout principal."""
+    # El contenido visual de tu página de inicio
     content = rx.el.div(
         rx.image(
             src="/balanza.png",
@@ -37,20 +47,34 @@ def index() -> rx.Component:
             class_name="text-lg text-gray-600 mb-4",
         ),
         rx.el.p(
-            "Funcionalidad base restaurada. Próximo paso: reintegrar autenticación.",
+            "Selecciona una opción del menú para comenzar.",
             class_name="text-lg text-gray-700 font-bold",
         ),
         class_name="flex flex-col items-center justify-center w-full h-full text-center",
     )
-    # Devolvemos el contenido directamente.
-    return content
+    # Se envuelve el contenido en el layout para mantener la consistencia visual
+    return main_layout(content)
 
 
-# --- Añadimos el resto de las páginas ---
-# Asumimos que estas páginas no dependen directamente del layout de Clerk.
-# Si lo hacen, tendrás que modificarlas temporalmente también.
+# --- Añadimos todas las páginas a la aplicación ---
 app.add_page(asistente_page)
 app.add_page(proyectos_page)
 app.add_page(prompts_page)
 
-# NOTA: Las líneas de 'clerk.add_..._page(app)' han sido eliminadas.
+# Añadimos las páginas de autenticación de Clerk
+clerk.add_sign_in_page(app)
+clerk.add_sign_up_page(app)
+
+
+# --- Envolvemos la App con el Provider de Clerk (EL PASO CLAVE) ---
+# Este es el método recomendado por la documentación para inyectar la
+# autenticación a nivel global en toda la aplicación.
+# Se encarga de manejar el estado y las dependencias de JavaScript.
+clerk.wrap_app(
+    app,
+    # Carga las claves de las variables de entorno
+    publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
+    secret_key=os.environ.get("CLERK_SECRET_KEY"),
+    # Habilita el estado rx.ClerkUser para acceder a la info del usuario
+    register_user_state=True,
+)
