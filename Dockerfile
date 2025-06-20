@@ -11,7 +11,7 @@ WORKDIR /app
 
 # ---- LÍNEA AÑADIDA ----
 # Instala las dependencias del sistema operativo. 'unzip' es requerido por Reflex.
-RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y unzip curl && rm -rf /var/lib/apt/lists/*
 # ---------------------
 
 # Copia el archivo de requerimientos primero para aprovechar el cache de Docker.
