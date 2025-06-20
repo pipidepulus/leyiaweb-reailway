@@ -4,17 +4,21 @@ config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
     api_url="https://legalcolrag.onrender.com",
 
-    # Tu plugin de Tailwind se mantiene igual.
+    # Moviendo el theme aquí, que es su lugar correcto en esta versión
+    theme=rx.theme(
+        appearance="light", has_background=True, radius="large", accent_color="teal"
+    ),
+
+    # Tus plugins, que ya estaban en el lugar correcto en el config anterior,
+    # pero ahora nos aseguramos de que SÓLO estén aquí.
     plugins=[
         rx.plugins.TailwindV3Plugin(),
     ],
 
-    # Mantenemos tus paquetes de frontend y añadimos los que faltan.
-    # Esta es la forma moderna de añadir dependencias de JS,
-    # reemplazando al antiguo 'custom_components'.
+    # Tus paquetes de frontend, que son cruciales para el error original.
     frontend_packages=[
         "@clerk/localizations",
-        "@chakra-ui/system",     # <--- Añadido
-        "chakra-react-select",   # <--- Añadido
+        "@chakra-ui/system",
+        "chakra-react-select",
     ],
 )
