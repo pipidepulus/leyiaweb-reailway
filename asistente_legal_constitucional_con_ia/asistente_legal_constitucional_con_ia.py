@@ -15,20 +15,12 @@ from .components.layout import main_layout
 
 load_dotenv()
 
-# --- EL PARCHE (WORKAROUND) ---
-# Creamos un estado personalizado que hereda del estado base de la app.
-# Sobreescribimos la URL del socket para forzarla a usar el dominio correcto.
-class CustomAppState(rx.AppState):
-    @rx.var
-    def socket_url(self) -> str:
-        # Esto ignora cualquier configuración automática y usa nuestro dominio.
-        return "wss://www.globaltelecom.site"
+# --- ELIMINADO EL PARCHE --- 
+# La clase CustomAppState fue eliminada porque causaba el error de inicio.
+# La configuración de la URL ahora se maneja en rxconfig.py
 
-# --- DEFINICIÓN DE LA APP ---
-# Le decimos a la app que use nuestro estado base personalizado.
-app = rx.App(
-    state=CustomAppState
-)
+# --- DEFINICIÓN DE LA APP (Forma estándar) ---
+app = rx.App()
 
 
 # --- Definición de la Página Principal (Index) ---
@@ -66,14 +58,11 @@ app.add_page(asistente_page)
 app.add_page(proyectos_page)
 app.add_page(prompts_page)
 
-clerk.add_sign_in_page(app)
-clerk.add_sign_up_page(app)
+# Las páginas de Clerk se añaden automáticamente por el layout, no es necesario aquí.
+# clerk.add_sign_in_page(app)
+# clerk.add_sign_up_page(app)
 
 
-# --- Envolvemos la App con el Provider de Clerk (MÉTODO OFICIAL) ---
-clerk.wrap_app(
-    app,
-    publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
-    secret_key=os.environ.get("CLERK_SECRET_KEY"),
-    register_user_state=True,
-)
+# --- ELIMINADO wrap_app --- 
+# El componente clerk_provider en main_layout.py ya se encarga de esto.
+# Mantener ambos puede causar conflictos.
