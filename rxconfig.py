@@ -11,4 +11,9 @@ config = rx.Config(
         "@chakra-ui/system",
         "chakra-react-select",
     ],
+    cors_allowed_origins=[
+        "http://localhost:3000",
+        "https://legalcolrag.onrender.com",
+        "https://www.globaltelecom.site",
+    ],
 )
