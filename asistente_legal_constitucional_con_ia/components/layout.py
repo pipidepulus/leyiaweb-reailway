@@ -19,29 +19,33 @@ def navbar() -> rx.Component:
                 href="/",
             ),
             rx.spacer(),
-            clerk.signed_in(
-                rx.hstack(
-                    rx.link("Asistente", href="/asistente-page"),
-                    rx.link("Proyectos", href="/proyectos-page"),
-                    rx.link("Prompts", href="/prompts-page"),
-                    clerk.user_button(after_sign_out_url="/"),
-                    spacing="4",
-                    align_items="center",
+            clerk.clerk_loaded(  # <--- ENVOLTORIO AÑADIDO
+                rx.fragment(
+                    clerk.signed_in(
+                        rx.hstack(
+                            rx.link("Asistente", href="/asistente-page"),
+                            rx.link("Proyectos", href="/proyectos-page"),
+                            rx.link("Prompts", href="/prompts-page"),
+                            clerk.user_button(after_sign_out_url="/"),
+                            spacing="4",
+                            align_items="center",
+                        )
+                    ),
+                    clerk.signed_out(
+                        rx.hstack(
+                            clerk.sign_in_button(
+                                rx.button("Iniciar Sesión", color_scheme="blue")
+                            ),
+                            clerk.sign_up_button(
+                                rx.button("Registrarse", variant="outline")
+                            ),
+                            spacing="4",
+                            align_items="center",
+                        )
+                    ),
                 )
             ),
-            clerk.signed_out(
-                rx.hstack(
-                    clerk.sign_in_button(
-                        rx.button("Iniciar Sesión", color_scheme="blue")
-                    ),
-                    clerk.sign_up_button(
-                        rx.button("Registrarse", variant="outline")
-                    ),
-                    spacing="4",
-                    align_items="center",
-                )
-            ),
-            justify="between",  # <--- ¡CORREGIDO!
+            justify="between",
             align_items="center",
             width="100%",
             padding_x="1rem",
@@ -69,5 +73,7 @@ def main_layout(content: rx.Component) -> rx.Component:
             ),
         ),
         publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY", ""),
+        secret_key=os.environ.get("CLERK_SECRET_KEY", ""),
+        register_user_state=True,
         locale="es-ES",
     )

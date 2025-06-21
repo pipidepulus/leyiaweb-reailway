@@ -7,7 +7,7 @@ config = rx.Config(
         rx.plugins.TailwindV3Plugin(),
     ],
     frontend_packages=[
-        #"@clerk/localizations",
+        "@clerk/localizations",
         "@chakra-ui/system",
         "chakra-react-select",
     ],
