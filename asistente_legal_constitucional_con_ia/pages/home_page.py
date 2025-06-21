@@ -1,31 +1,41 @@
 import reflex as rx
-from asistente_legal_constitucional_con_ia.components.sidebar import sidebar
+from ..components.layout import main_layout
 
 
-def home_page():
-    return rx.el.div(
-        sidebar(),
-        rx.el.div(
-            rx.image(
-                src="/balanza.png",
-                alt="Balanza de la Justicia",
-                width="256px",
-                height="auto",
-                margin_bottom="1rem"
+@rx.page(route="/", title="Inicio")
+def home_page() -> rx.Component:
+    """Página de inicio de la aplicación."""
+    return main_layout(
+        rx.center(
+            rx.vstack(
+                rx.image(
+                    src="/balanza.png",
+                    alt="Balanza de la Justicia",
+                    width="256px",
+                    height="auto",
+                    margin_bottom="1rem",
+                ),
+                rx.heading(
+                    "Bienvenido al Asistente Legal Constitucional",
+                    size="2xl",
+                    text_align="center",
+                ),
+                rx.text(
+                    "Sistema especializado en análisis de jurisprudencia, leyes, y propuestas de leyes con ayuda de inteligencia artificial.",
+                    text_align="center",
+                ),
+                rx.text(
+                    "Selecciona una opción del menú para comenzar.",
+                    font_weight="bold",
+                    text_align="center",
+                ),
+                spacing="4",
+                align="center",
+                width="100%",
+                max_width="800px",
+                padding="4",
             ),
-            rx.el.h1(
-                "Bienvenido al Asistente Legal Constitucional",
-                class_name="text-3xl font-bold mb-2"
-            ),
-            rx.el.p(
-                "Sistema especializado en análisis de jurisprudencia, leyes, propuestas de leyes con ayuda de inteligencia artificial.",
-                class_name="text-lg text-gray-600 mb-4"
-            ),
-            rx.el.p(
-                "Selecciona una opción del menú para comenzar.",
-                class_name="text-lg text-gray-700 font-bold"
-            ),
-            class_name="flex flex-col items-center justify-center w-full h-full text-center p-8"
-        ),
-        class_name="flex h-screen w-full bg-gray-50 dark:bg-gray-900",
+            width="100%",
+            height="100%",
+        )
     )

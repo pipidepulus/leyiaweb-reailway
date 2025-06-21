@@ -1,11 +1,11 @@
 import reflex as rx
-from asistente_legal_constitucional_con_ia.components.sidebar import sidebar
+from ..components.layout import main_layout
 
 
 @rx.page(route="/chat", title="Chat")
 def chat_page() -> rx.Component:
-    return rx.hstack(
-        sidebar(),
+    """Página de chat simple para demostración."""
+    return main_layout(
         rx.center(
             rx.box(
                 rx.heading("Chat", size="lg"),
@@ -18,10 +18,6 @@ def chat_page() -> rx.Component:
                 bg=rx.color_mode_cond("white", "gray.800"),
             ),
             width="100%",
-            height="100vh",
-            class_name="bg-gray-50 dark:bg-gray-900 w-full h-full",
-        ),
-        align="start",
-        width="100%",
-        class_name="bg-gray-50 dark:bg-gray-900 min-h-screen w-full",
+            height="100%",
+        )
     )
