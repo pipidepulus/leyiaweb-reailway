@@ -26,8 +26,8 @@ COPY . .
 
 
 # Expone los puertos que Reflex utiliza.
-EXPOSE 3000
+
 EXPOSE 8000
 
 # El comando para iniciar la aplicación en modo producción.
-CMD ["reflex", "run", "--env", "prod", "--frontend-port", "3000", "--backend-port", "8000"]
+CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "8000"]
