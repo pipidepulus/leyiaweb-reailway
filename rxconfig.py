@@ -8,7 +8,7 @@ config = rx.Config(
     ],
     frontend_packages=[
         #"@clerk/localizations",
-        #"@chakra-ui/system",
+        "@chakra-ui/system",
         #"chakra-react-select",
     ],
     cors_allowed_origins=[
