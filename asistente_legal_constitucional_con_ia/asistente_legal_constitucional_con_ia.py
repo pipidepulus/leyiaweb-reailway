@@ -1,7 +1,7 @@
 # ruta: asistente_legal_constitucional_con_ia/asistente_legal_constitucional_con_ia.py
 """
 Archivo principal de la aplicación.
-Refactorizado para usar el método oficial y documentado `clerk.wrap_app`.
+Refactorización final para forzar la URL del backend explícitamente.
 """
 
 # --- Importaciones ---
@@ -15,11 +15,18 @@ from .pages.proyectos_page import proyectos_page
 from .pages.asistente_page import asistente_page
 from .components.layout import main_layout
 
-# --- Carga de Entorno y Definición de la App ---
+# --- Carga de Entorno ---
 load_dotenv()
 
-# La aplicación se define de forma simple.
-app = rx.App()
+# --- DEFINICIÓN DE LA APP CON PARÁMETROS EXPLÍCITOS (EL CAMBIO CLAVE) ---
+# En lugar de confiar en rxconfig.py, forzamos los valores aquí.
+app = rx.App(
+    # Forzamos la URL del frontend a nuestro dominio personalizado.
+    frontend_url="https://www.globaltelecom.site",
+    
+    # Forzamos la URL del backend a nuestro dominio personalizado.
+    backend_url="https://www.globaltelecom.site",
+)
 
 
 # --- Definición de la Página Principal (Index) ---
@@ -61,9 +68,7 @@ clerk.add_sign_in_page(app)
 clerk.add_sign_up_page(app)
 
 
-# --- Envolvemos la App con el Provider de Clerk (MÉTODO OFICIAL) ---
-# Ahora que la configuración de dominios y claves es correcta,
-# este método funcionará como se espera.
+# --- Envolvemos la App con el Provider de Clerk ---
 clerk.wrap_app(
     app,
     publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
