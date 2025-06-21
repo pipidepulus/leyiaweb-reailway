@@ -5,7 +5,7 @@ Aplicando un parche para forzar la URL del WebSocket en el AppState.
 """
 import os
 import reflex as rx
-import reflex_clerk_api as clerk
+# import reflex_clerk_api as clerk
 from dotenv import load_dotenv
 
 from .pages.prompts_page import prompts_page
