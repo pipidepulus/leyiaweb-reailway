@@ -5,6 +5,7 @@ Archivo principal de la aplicación.
 import os
 import reflex as rx
 from dotenv import load_dotenv
+from fastapi import FastAPI
 
 from .pages.prompts_page import prompts_page
 from .pages.proyectos_page import proyectos_page
@@ -13,8 +14,26 @@ from .components.layout import main_layout
 
 load_dotenv()
 
-# --- DEFINICIÓN DE LA APP (Forma estándar) ---
-app = rx.App()
+# --- MÉTODO MODERNO PARA AÑADIR RUTAS API ---
+# 1. Crea una instancia de FastAPI.
+fastapi_app = FastAPI()
+
+# 2. Define tu endpoint de salud en esta instancia.
+@fastapi_app.get("/health")
+def health():
+    """Endpoint de chequeo de salud para Render."""
+    return {"status": "ok"}
+
+# 3. Define una función "transformer" que montará la API de Reflex.
+def api_transformer(reflex_api: FastAPI) -> FastAPI:
+    """Monta la API de Reflex en la aplicación FastAPI principal."""
+    fastapi_app.mount(path="/", app=reflex_api)
+    return fastapi_app
+
+# --- DEFINICIÓN DE LA APP (Usando el transformer) ---
+app = rx.App(
+    api_transformer=api_transformer,
+)
 
 
 # --- Definición de la Página Principal (Index) ---
@@ -51,9 +70,4 @@ def index() -> rx.Component:
 app.add_page(asistente_page)
 app.add_page(proyectos_page)
 app.add_page(prompts_page)
-
-@app.api.get("/health")
-def health_check():
-    """Endpoint de chequeo de salud para Render."""
-    return {"status": "ok"}
 
