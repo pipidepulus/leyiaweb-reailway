@@ -2,10 +2,6 @@
 
 # Versión de Reflex que estás usando
 reflex==0.7.14
-
-# ACTUALIZACIÓN CRÍTICA: Usamos la última versión estable de Clerk API
-reflex-clerk-api==1.0.1
-
 # Resto de tus dependencias
 python-dotenv==1.0.1
 openai

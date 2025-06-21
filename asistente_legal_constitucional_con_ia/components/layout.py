@@ -1,7 +1,6 @@
 # ruta: components/layout.py
 """Layout principal de la aplicación."""
 import reflex as rx
-# import reflex_clerk_api as clerk
 import os
 from .sidebar import sidebar
 

@@ -1,11 +1,9 @@
 # ruta: asistente_legal_constitucional_con_ia/asistente_legal_constitucional_con_ia.py
 """
 Archivo principal de la aplicación.
-Aplicando un parche para forzar la URL del WebSocket en el AppState.
 """
 import os
 import reflex as rx
-# import reflex_clerk_api as clerk
 from dotenv import load_dotenv
 
 from .pages.prompts_page import prompts_page
@@ -14,10 +12,6 @@ from .pages.asistente_page import asistente_page
 from .components.layout import main_layout
 
 load_dotenv()
-
-# --- ELIMINADO EL PARCHE --- 
-# La clase CustomAppState fue eliminada porque causaba el error de inicio.
-# La configuración de la URL ahora se maneja en rxconfig.py
 
 # --- DEFINICIÓN DE LA APP (Forma estándar) ---
 app = rx.App()
@@ -58,11 +52,3 @@ app.add_page(asistente_page)
 app.add_page(proyectos_page)
 app.add_page(prompts_page)
 
-# Las páginas de Clerk se añaden automáticamente por el layout, no es necesario aquí.
-# clerk.add_sign_in_page(app)
-# clerk.add_sign_up_page(app)
-
-
-# --- ELIMINADO wrap_app --- 
-# El componente clerk_provider en main_layout.py ya se encarga de esto.
-# Mantener ambos puede causar conflictos.

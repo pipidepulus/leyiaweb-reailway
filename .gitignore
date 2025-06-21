@@ -1,9 +1,20 @@
-.states
-__pycache__/
-.web
-assets/external/
-*.py[cod]
-*.db
-/alembic
-venv
+# Entorno virtual
+.venv/
+venv/
+
+# Archivos de secretos
 .env
+
+# Archivos subidos por los usuarios
+uploaded_files/
+
+# Archivos de base de datos de Reflex
+*.db
+
+# Archivos compilados de Python
+__pycache__/
+*.pyc
+
+.states
+.web
+
