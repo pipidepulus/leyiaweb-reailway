@@ -1,7 +1,7 @@
 # requirements.txt
 
 # Versión de Reflex que estás usando
-reflex==0.7.14
+reflex
 # Resto de tus dependencias
 python-dotenv==1.0.1
 openai
