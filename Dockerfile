@@ -30,4 +30,4 @@ EXPOSE 3000
 EXPOSE 8000
 
 # El comando para iniciar la aplicación en modo producción.
-CMD ["reflex", "run", "--env", "prod", "--frontend-port", "3000", "--backend-port", "8000"]
+CMD ["sh", "-c", "echo '--- DIAGNOSTICO: LISTANDO ARCHIVOS ---' && ls -la && echo '--- DIAGNOSTICO: LISTANDO PAQUETES PIP ---' && pip list && echo '--- DIAGNOSTICO: INICIANDO REFLEX ---' && reflex run --env prod --frontend-port 3000 --backend-port 8000"]
