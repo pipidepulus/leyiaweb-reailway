@@ -52,3 +52,8 @@ app.add_page(asistente_page)
 app.add_page(proyectos_page)
 app.add_page(prompts_page)
 
+@app.api.get("/health")
+def health_check():
+    """Endpoint de chequeo de salud para Render."""
+    return {"status": "ok"}
+
