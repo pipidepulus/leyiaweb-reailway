@@ -23,14 +23,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia el resto del código de tu aplicación al directorio de trabajo.
 COPY . .
 
-# ---- NUEVO PASO DE COMPILACIÓN ----
-# Compila el frontend durante la construcción de la imagen.
-RUN reflex build
+
 
 # Expone los puertos que Reflex utiliza.
 EXPOSE 3000
 EXPOSE 8000
 
-# El comando para iniciar la aplicación en modo producción.
-# Usa 'reflex start' ya que el 'build' ya se ha hecho.
-CMD ["reflex", "start", "--env", "prod", "--frontend-port", "3000", "--backend-port", "8000"]
+# El comando para iniciar la aplicación en modo producción, según la documentación de Render.
+CMD ["reflex", "run", "--env", "prod", "--backend-only", "--loglevel", "debug"]
