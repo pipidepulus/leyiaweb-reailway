@@ -1,9 +1,10 @@
 # ruta: asistente_legal_constitucional_con_ia/asistente_legal_constitucional_con_ia.py
 """
 Archivo principal de la aplicación.
-Inicializa Clerk y la App de forma explícita para máxima compatibilidad
-en entornos de producción como Render.
+Refactorizado para usar el método oficial y documentado `clerk.wrap_app`.
 """
+
+# --- Importaciones ---
 import os
 import reflex as rx
 import reflex_clerk_api as clerk
@@ -14,18 +15,12 @@ from .pages.proyectos_page import proyectos_page
 from .pages.asistente_page import asistente_page
 from .components.layout import main_layout
 
+# --- Carga de Entorno y Definición de la App ---
 load_dotenv()
 
-# --- INICIALIZACIÓN EXPLÍCITA DE CLERK ---
-clerk_auth = clerk.Clerk(
-    publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
-    secret_key=os.environ.get("CLERK_SECRET_KEY"),
-)
+# La aplicación se define de forma simple.
+app = rx.App()
 
-# --- DEFINICIÓN DE LA APP CON EL MIDDLEWARE DE CLERK ---
-app = rx.App(
-    clerk_auth=clerk_auth,
-)
 
 # --- Definición de la Página Principal (Index) ---
 @rx.page(route="/", title="Inicio")
@@ -56,6 +51,7 @@ def index() -> rx.Component:
     )
     return main_layout(content)
 
+
 # --- Añadimos todas las páginas a la aplicación ---
 app.add_page(asistente_page)
 app.add_page(proyectos_page)
@@ -63,3 +59,14 @@ app.add_page(prompts_page)
 
 clerk.add_sign_in_page(app)
 clerk.add_sign_up_page(app)
+
+
+# --- Envolvemos la App con el Provider de Clerk (MÉTODO OFICIAL) ---
+# Ahora que la configuración de dominios y claves es correcta,
+# este método funcionará como se espera.
+clerk.wrap_app(
+    app,
+    publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
+    secret_key=os.environ.get("CLERK_SECRET_KEY"),
+    register_user_state=True,
+)

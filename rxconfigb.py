@@ -1,13 +1,17 @@
 # ruta: rxconfig.py
 """
-Configuración principal de la aplicación Reflex.
-Define el nombre, la URL de la API, los plugins y las dependencias de frontend.
+Configuración final de la aplicación.
+La api_url se ha actualizado para usar el dominio personalizado,
+unificando la comunicación del frontend y el backend.
 """
 import reflex as rx
 
 config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
-    api_url="https://legalcolrag.onrender.com",
+    
+    # --- EL CAMBIO CLAVE ---
+    # La URL de la API DEBE coincidir con el dominio que usas en el navegador.
+    api_url="https://www.globaltelecom.site",
 
     # Configuración del tema base de Radix para la aplicación
     theme=rx.theme(
