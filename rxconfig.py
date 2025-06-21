@@ -4,6 +4,8 @@ import reflex as rx
 config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
     api_url="https://legalcolrag.onrender.com",
+    ping_interval=10,
+    ping_timeout=120,
     plugins=[
         rx.plugins.TailwindV3Plugin(),
     ],
