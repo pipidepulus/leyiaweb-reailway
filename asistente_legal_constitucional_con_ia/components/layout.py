@@ -5,6 +5,7 @@ Corregido para usar el valor 'between' en la propiedad justify de HStack.
 """
 import reflex as rx
 import reflex_clerk_api as clerk
+import os # Importante para acceder a las variables de entorno
 
 def navbar() -> rx.Component:
     """La barra de navegación que cambia según el estado de autenticación."""
@@ -58,11 +59,15 @@ def navbar() -> rx.Component:
 
 def main_layout(content: rx.Component) -> rx.Component:
     """El layout principal que envuelve el contenido de la página."""
-    return rx.box(
-        navbar(),
-        rx.container(
-            content,
-            padding_top="6rem",
-            max_w="container.xl",
+    return clerk.clerk_provider(
+        rx.box(
+            navbar(),
+            rx.container(
+                content,
+                padding_top="6rem",
+                max_w="container.xl",
+            ),
         ),
+        publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY", ""),
+        locale="es-ES",
     )
