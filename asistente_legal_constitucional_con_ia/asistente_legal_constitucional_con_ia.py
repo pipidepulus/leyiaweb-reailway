@@ -1,10 +1,8 @@
 # ruta: asistente_legal_constitucional_con_ia/asistente_legal_constitucional_con_ia.py
 """
 Archivo principal de la aplicación.
-Refactorización final para forzar la URL del backend explícitamente.
+Aplicando un parche para forzar la URL del WebSocket en el AppState.
 """
-
-# --- Importaciones ---
 import os
 import reflex as rx
 import reflex_clerk_api as clerk
@@ -15,17 +13,21 @@ from .pages.proyectos_page import proyectos_page
 from .pages.asistente_page import asistente_page
 from .components.layout import main_layout
 
-# --- Carga de Entorno ---
 load_dotenv()
 
-# --- DEFINICIÓN DE LA APP CON PARÁMETROS EXPLÍCITOS (EL CAMBIO CLAVE) ---
-# En lugar de confiar en rxconfig.py, forzamos los valores aquí.
+# --- EL PARCHE (WORKAROUND) ---
+# Creamos un estado personalizado que hereda del estado base de la app.
+# Sobreescribimos la URL del socket para forzarla a usar el dominio correcto.
+class CustomAppState(rx.AppState):
+    @rx.var
+    def socket_url(self) -> str:
+        # Esto ignora cualquier configuración automática y usa nuestro dominio.
+        return "wss://www.globaltelecom.site"
+
+# --- DEFINICIÓN DE LA APP ---
+# Le decimos a la app que use nuestro estado base personalizado.
 app = rx.App(
-    # Forzamos la URL del frontend a nuestro dominio personalizado.
-    frontend_url="https://www.globaltelecom.site",
-    
-    # Forzamos la URL del backend a nuestro dominio personalizado.
-    backend_url="https://www.globaltelecom.site",
+    state=CustomAppState
 )
 
 
@@ -68,7 +70,7 @@ clerk.add_sign_in_page(app)
 clerk.add_sign_up_page(app)
 
 
-# --- Envolvemos la App con el Provider de Clerk ---
+# --- Envolvemos la App con el Provider de Clerk (MÉTODO OFICIAL) ---
 clerk.wrap_app(
     app,
     publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
