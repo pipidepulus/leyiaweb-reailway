@@ -21,13 +21,16 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia el resto del código de tu aplicación al directorio de trabajo.
-COPY asistente_legal_constitucional_con_ia/ ./asistente_legal_constitucional_con_ia/
-COPY rxconfig.py .
-COPY assets/ ./assets/
+COPY . .
+
+# ---- NUEVO PASO DE COMPILACIÓN ----
+# Compila el frontend durante la construcción de la imagen.
+RUN reflex build
 
 # Expone los puertos que Reflex utiliza.
 EXPOSE 3000
 EXPOSE 8000
 
 # El comando para iniciar la aplicación en modo producción.
-CMD ["sh", "-c", "echo '--- DIAGNOSTICO: LISTANDO ARCHIVOS ---' && ls -la && echo '--- DIAGNOSTICO: LISTANDO PAQUETES PIP ---' && pip list && echo '--- DIAGNOSTICO: INICIANDO REFLEX ---' && reflex run --env prod --frontend-port 3000 --backend-port 8000"]
+# Usa 'reflex start' ya que el 'build' ya se ha hecho.
+CMD ["reflex", "start", "--env", "prod", "--frontend-port", "3000", "--backend-port", "8000"]
