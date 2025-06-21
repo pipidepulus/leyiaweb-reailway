@@ -29,5 +29,8 @@ COPY . .
 
 EXPOSE 8000
 
-# El comando para iniciar la aplicación en modo producción.
-CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "8000"]
+# ---- LA CMD DEFINITIVA ----
+# 1. Compilamos el frontend explícitamente PRIMERO con `reflex export`.
+# 2. Luego iniciamos el backend con `reflex run` y el flag `--no-frontend`.
+#    Esto evita que se levante el servidor de Node.js en el puerto 3000.
+CMD ["sh", "-c", "reflex export --backend-only && reflex run --env prod --no-frontend --backend-host 0.0.0.0 --backend-port ${PORT:-8000}"]
