@@ -28,4 +28,4 @@ EXPOSE 8000
 # - Se enlaza a 0.0.0.0 para ser accesible desde fuera del contenedor.
 # - Usa la variable $PORT que Render provee.
 # - --no-frontend evita que intente iniciar el servidor de Node.js.
-CMD ["reflex", "run", "--env", "prod", "--no-frontend", "--backend-host", "0.0.0.0", "--backend-port", "${PORT}"]
+CMD ["reflex", "run", "--env", "prod", "--backend-only", "--backend-host", "0.0.0.0", "--backend-port", "${PORT}"]
