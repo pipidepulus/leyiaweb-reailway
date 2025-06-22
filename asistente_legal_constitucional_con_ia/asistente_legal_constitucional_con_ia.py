@@ -74,10 +74,10 @@ app.add_page(prompts_page)
 publishable_key_from_env = os.getenv("CLERK_PUBLISHABLE_KEY")
 secret_key_from_env = os.getenv("CLERK_SECRET_KEY")
 
-print("--- CLAVES DE CLERK (DEPURACIÓN) ---")
-print(f"Publishable Key leída: {publishable_key_from_env}")
-print(f"Secret Key leída: {secret_key_from_env}")
-print("---------------------------------")
+#print("--- CLAVES DE CLERK (DEPURACIÓN) ---")
+#print(f"Publishable Key leída: {publishable_key_from_env}")
+#print(f"Secret Key leída: {secret_key_from_env}")
+#print("---------------------------------")
 # ------------------------------------
 
 
