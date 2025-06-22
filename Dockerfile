@@ -14,7 +14,7 @@ COPY requirements.txt .
 
 # Instala las dependencias del proyecto.
 # Añadimos 'unzip' por si reflex lo necesita internamente.
-RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/* && \
+RUN apt-get update && apt-get install -y unzip tesseract-ocr tesseract-ocr-spa poppler-utils && rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copia el resto del código de tu aplicación al directorio de trabajo.
