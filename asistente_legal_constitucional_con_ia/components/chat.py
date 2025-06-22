@@ -22,7 +22,7 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
             rx.box(
                 rx.markdown(
                     message["content"],
-                    class_name="prose prose-sm max-w-none break-words",
+                    class_name="prose prose-base max-w-none break-words",
                 ),
                 rx.cond(
                     ~is_user,

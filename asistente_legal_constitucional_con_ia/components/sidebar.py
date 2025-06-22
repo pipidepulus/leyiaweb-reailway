@@ -1,6 +1,7 @@
 """Barra de navegación principal que incluye un panel contextual inteligente."""
 
 import reflex as rx
+import reflex_clerk_api as clerk
 from .asistente_sidebar import asistente_sidebar
 
 
@@ -48,13 +49,22 @@ def sidebar() -> rx.Component:
             # Sección inferior con la información y botón del usuario
             rx.vstack(
                 rx.divider(),
+                clerk.signed_in(
+                    clerk.user_button(),  # Muestra el botón de perfil y "sign out"
+                ),
+                clerk.signed_out(
+                    clerk.sign_in_button(rx.button("Iniciar Sesión")),
+                ),
                 width="100%",
                 padding_bottom="1em",  # Añade un poco de espacio en la parte inferior
             ),
             spacing="5",
             width="100%",
-            height="100vh",
+            height="100%",  # Cambiado a 100% para llenar el contenedor padre
             padding="1em",
         ),
+        position="sticky",
+        top="0",
+        height="100vh",
         class_name="w-[350px] border-r bg-white shadow-md",
     )

@@ -11,4 +11,4 @@ def asistente_page() -> rx.Component:
     Define el contenido de la página del asistente, que ahora es solo el chat.
     El layout principal se encarga del resto.
     """
-    return main_layout(chat())
+    return main_layout(chat(), use_container=False)
