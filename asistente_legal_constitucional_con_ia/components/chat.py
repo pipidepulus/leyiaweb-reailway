@@ -59,6 +59,9 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
         width="100%",
         min_width="0",
         padding_x="0.5rem",  # Pequeño padding lateral
+        # --- INICIO DEL CAMBIO ---
+        style={"contain": "layout"},
+        # --- FIN DEL CAMBIO ---
     )
 
 def chat_input_area() -> rx.Component:
