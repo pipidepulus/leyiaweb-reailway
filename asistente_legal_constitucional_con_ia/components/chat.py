@@ -23,6 +23,9 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
                 rx.markdown(
                     message["content"],
                     class_name="prose prose-base max-w-none break-words",
+                    # --- INICIO DEL NUEVO CAMBIO ---
+                    style={"will-change": "contents"},
+                    # --- FIN DEL NUEVO CAMBIO ---
                 ),
                 rx.cond(
                     ~is_user,
@@ -58,10 +61,7 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
         ),
         width="100%",
         min_width="0",
-        padding_x="0.5rem",  # Pequeño padding lateral
-        # --- INICIO DEL CAMBIO ---
-        style={"contain": "layout"},
-        # --- FIN DEL CAMBIO ---
+        padding_x="0.5rem",  # Pequeño padding lateral        
     )
 
 def chat_input_area() -> rx.Component:
