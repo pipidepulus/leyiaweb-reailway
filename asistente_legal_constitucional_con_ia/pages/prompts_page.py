@@ -3,6 +3,7 @@
 import reflex as rx
 from ..components.layout import main_layout
 from typing import List, Dict, Any
+from ..util.auth import require_login  # <-- 1. IMPORTAMOS EL DECORADOR
 
 class Prompt(rx.Base):
     title: str
@@ -276,9 +277,12 @@ def render_prompt_card(prompt: Prompt, phase_key: str, index: int) -> rx.Compone
     )
 
 
-@rx.page(route="/prompts", title="Prompts")
+# --- CAMBIO FINAL AQUÍ ---
+# 2. REEMPLAZAMOS @rx.page POR @require_login
+@require_login
 def prompts_page() -> rx.Component:
     """Define el contenido de la página de prompts."""
+    # ... (el contenido de la función prompts_page no cambia)
     content = rx.container(
         rx.vstack(
             rx.heading("Metodología de Prompts para Análisis Constitucional con IA", size="7", align="center", margin_top="1em"),

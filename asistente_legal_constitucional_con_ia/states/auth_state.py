@@ -1,7 +1,7 @@
 # ruta: asistente_legal_constitucional_con_ia/states/auth_state.py
 """Estado para gestionar la autenticación con Clerk."""
 import reflex as rx
-import reflex_clerk as clerk
+import reflex_clerk_api as clerk
 
 class AuthState(rx.State):
     """

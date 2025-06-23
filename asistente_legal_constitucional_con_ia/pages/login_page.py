@@ -1,7 +1,7 @@
 # ruta: asistente_legal_constitucional_con_ia/pages/login_page.py
 """Página de inicio de sesión con el componente de Clerk."""
 import reflex as rx
-import reflex_clerk as clerk
+import reflex_clerk_api as clerk
 
 from ..components.layout import main_layout
 

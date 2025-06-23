@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from typing import Dict, List
+from ..util.auth import require_login  # <-- 1. IMPORTAMOS NUESTRO DECORADOR
 
 Proyecto = Dict[str, str]
 
@@ -112,7 +113,9 @@ def render_table(data: rx.Var[list]) -> rx.Component:
     )
 
 
-@rx.page(route="/proyectos", title="Proyectos de Ley", on_load=ProyectosState.scrape_proyectos)
+# --- CAMBIO PRINCIPAL AQUÍ ---
+# 2. QUITAMOS @rx.page(...) Y AÑADIMOS @require_login
+@require_login
 def proyectos_page() -> rx.Component:
     """Define el contenido de la página de proyectos."""
     content = rx.el.div(

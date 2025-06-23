@@ -479,23 +479,25 @@ class ChatState(rx.State):
     def _get_context(self) -> str:
         return ""
 
-    @rx.event
-    def limpiar_chat(self):
-        """Reinicia el estado del chat y los archivos a sus valores iniciales."""
-        self.messages = []
-        self.thread_id = None
-        self.file_info_list = []
-        self.processing = False
-        self.uploading = False
-        self.upload_progress = 0
-        self.ocr_progress = ""
-        self.streaming_response = ""
-        self.streaming = False
-        self.thinking_seconds = 0
-        self.upload_error = ""
-        self.focus_chat_input = False
-        self.current_question = ""
-        logger.info("[DEBUG] ChatState.limpiar_chat ejecutado y estado reseteado.")
+   # ÚNICO CAMBIO REQUERIDO EN ESTE ARCHIVO
+@rx.event
+def limpiar_chat(self):
+    """Reinicia el estado del chat y los archivos a sus valores iniciales."""
+    self.messages = []
+    self.thread_id = None
+    self.file_info_list = []
+    self.processing = False
+    self.uploading = False
+    self.upload_progress = 0
+    self.ocr_progress = ""
+    self.streaming_response = ""
+    self.streaming = False
+    self.thinking_seconds = 0
+    self.upload_error = ""
+    self.focus_chat_input = False
+    self.current_question = ""
+    self.chat_history = []  # Asegurándonos de que esta también se limpie
+    logger.info("[DEBUG] ChatState.limpiar_chat ejecutado y estado reseteado.")
 
     @rx.event
     def limpiar_chat_y_redirigir(self):

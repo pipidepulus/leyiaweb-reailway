@@ -7,90 +7,118 @@ import reflex as rx
 from dotenv import load_dotenv
 import reflex_clerk_api as clerk
 
-from .pages.prompts_page import prompts_page
-from .pages.proyectos_page import proyectos_page
-from .pages.asistente_page import asistente_page
-from .components.layout import main_layout
-
+# --- Carga de variables de entorno ---
 load_dotenv()
 
-# --- DEFINICIÓN DE LA APP (Forma estándar) ---
-app = rx.App()
+# ### CAMBIO 1: Importa tus páginas, incluida la de login ###
+from .pages.prompts_page import prompts_page
+from .pages.proyectos_page import proyectos_page, ProyectosState
+from .pages.asistente_page import asistente_page
+from .pages.login_page import login_page  # <-- ¡Importante!
+# Si tienes una página de registro, impórtala también:
+# from .pages.signup_page import signup_page 
+from .components.layout import main_layout
 
+# 1. Primero, crea la instancia de la aplicación Reflex.
+app = rx.App(
+    theme=rx.theme(
+        appearance="light",
+        has_background=True,
+        radius="large",
+        accent_color="grass",
+           ),
+)
 
-# --- Definición de la Página Principal (Index) ---
+# --- Página Principal (Index) ---
+# La página de inicio no necesita protección, ya que gestiona ambos casos (logueado/deslogueado).
 @rx.page(route="/", title="Inicio")
 def index() -> rx.Component:
     """La página de inicio, envuelta en el layout principal."""
-    content = rx.el.div(
+    content = rx.center( # Usamos center para alinear todo
         # Muestra el contenido principal solo si el usuario ha iniciado sesión
         clerk.signed_in(
-            rx.el.div(
+            rx.vstack(
                 rx.image(
                     src="/balanza.png",
-                    alt="Balanza de la Justicia",
                     width="256px",
                     height="auto",
                     margin_bottom="1rem",
                 ),
-                rx.el.h1(
+                rx.heading(
                     "Bienvenido al Asistente Legal Constitucional",
-                    class_name="text-3xl font-bold mb-2",
+                    size="7",
+                    margin_bottom="1rem",
                 ),
-                rx.el.p(
-                    "Sistema especializado en análisis de jurisprudencia, leyes, "
-                    "propuestas de leyes con ayuda de inteligencia artificial.",
-                    class_name="text-lg text-gray-600 mb-4",
+                rx.text(
+                    "Sistema especializado en análisis de jurisprudencia y leyes con IA.",
+                    size="4",
+                    color_scheme="gray",
+                    margin_bottom="1.5rem",
                 ),
-                rx.el.p(
-                    "Selecciona una opción del menú para comenzar.",
-                    class_name="text-lg text-gray-700 font-bold",
+                rx.text(
+                    "Selecciona una opción del menú lateral para comenzar.",
+                    size="5",
+                    weight="bold",
                 ),
+                align="center",
+                spacing="3",
             )
         ),
-        # Muestra un mensaje de bienvenida y un botón de inicio de sesión si no está autenticado
+        # Muestra un mensaje y botón de inicio de sesión si no está autenticado
         clerk.signed_out(
-            rx.el.div(
-                rx.el.h1("Bienvenido", class_name="text-3xl font-bold mb-2"),
-                rx.el.p(
-                    "Por favor, inicia sesión para acceder al asistente.",
-                    class_name="text-lg text-gray-600 mb-4",
-                ),
-                clerk.sign_in_button(rx.button("Iniciar Sesión")),
+            rx.vstack(
+                # --- CÓDIGO CORRECTO PARA ESTE ENFOQUE ---
+        clerk.sign_in_button(
+            rx.button("Iniciar Sesión", size="3", variant="solid")
+        ),
+        rx.vstack(
+        rx.text("¿No tienes cuenta?"),
+        clerk.sign_up_button(
+            rx.link(
+                "Regístrate aquí.", 
+                # Añadimos un poco de estilo para que parezca un enlace real
+                color_scheme="blue",
+                text_decoration="underline",
             )
         ),
-        class_name="flex flex-col items-center justify-center w-full h-full text-center",
+        spacing="1",          # Espaciado mínimo entre los dos textos
+        align="center",       # Centra los elementos horizontalmente
+        margin_top="1.5em",   # Un poco de espacio por encima
     )
+            )
+        ),
+        height="80vh",
+    )
+    # Importante: La página de inicio también debe usar el layout para tener la barra lateral
     return main_layout(content)
 
-
 # --- Añadimos todas las páginas a la aplicación ---
-app.add_page(asistente_page)
-app.add_page(proyectos_page)
-app.add_page(prompts_page)
+
+# ### CAMBIO 3: Añade TUS páginas de login y registro ###
+# Aquí es donde le dices a Reflex que la URL '/login' debe usar tu archivo login_page.py
+app.add_page(login_page, route="/login", title="Iniciar Sesión")
+# Si tienes una página de registro, añádela también:
+# app.add_page(signup_page, route="/sign-up", title="Registro")
 
 
-# --- AÑADE ESTO PARA DEPURAR ---
-publishable_key_from_env = os.getenv("CLERK_PUBLISHABLE_KEY")
-secret_key_from_env = os.getenv("CLERK_SECRET_KEY")
+# Estas páginas DEBEN estar protegidas, así que aquí aplicaremos el decorador.
+# Asegúrate de que en cada uno de estos archivos (`asistente_page.py`, etc.)
+# hayas añadido el decorador @require_login como vimos antes.
+app.add_page(asistente_page, route="/asistente", title="Asistente Constitucional")
+app.add_page(
+    proyectos_page, 
+    route="/proyectos", 
+    title="Proyectos de Ley", 
+    on_load=ProyectosState.scrape_proyectos  # <-- Pasamos el evento on_load aquí
+)
+app.add_page(prompts_page, route="/prompts")
 
-#print("--- CLAVES DE CLERK (DEPURACIÓN) ---")
-#print(f"Publishable Key leída: {publishable_key_from_env}")
-#print(f"Secret Key leída: {secret_key_from_env}")
-#print("---------------------------------")
-# ------------------------------------
-
-
-# --- Configuración de Clerk ---
-# Envolvemos la aplicación completa con el proveedor de Clerk para gestionar la autenticación.
-# Esto asegura que el contexto de autenticación esté disponible en todas las páginas.
+# ### CORRECCIÓN DEFINITIVA: USAMOS wrap_app AL FINAL ###
+# Este es el método correcto según la documentación de reflex-clerk-api.
+# Envuelve la aplicación completa y configura tanto el backend como el frontend.
 app = clerk.wrap_app(
     app,
     publishable_key=os.getenv("CLERK_PUBLISHABLE_KEY"),
     secret_key=os.getenv("CLERK_SECRET_KEY"),
+    register_user_state=True, 
 )
-
-# --- Añadimos las páginas de autenticación de Clerk ---
-clerk.add_sign_in_page(app)
-clerk.add_sign_up_page(app)
-
