@@ -66,5 +66,12 @@ def sidebar() -> rx.Component:
         position="sticky",
         top="0",
         height="100vh",
-        class_name="w-[350px] border-r bg-white shadow-md",
+        class_name="border-r bg-white shadow-md",  # Quitamos w-[350px] de aquí
+    # --- INICIO DEL NUEVO CAMBIO ---
+    style={
+        "width": "350px",
+        "min_width": "350px",
+        "flex_shrink": "0",
+    },
+    # --- FIN DEL NUEVO CAMBIO ---
     )

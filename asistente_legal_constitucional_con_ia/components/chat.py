@@ -22,10 +22,7 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
             rx.box(
                 rx.markdown(
                     message["content"],
-                    class_name="prose prose-base max-w-none break-words",
-                    # --- INICIO DEL NUEVO CAMBIO ---
-                    style={"will-change": "contents"},
-                    # --- FIN DEL NUEVO CAMBIO ---
+                    class_name="prose prose-base max-w-none break-words",                    
                 ),
                 rx.cond(
                     ~is_user,
