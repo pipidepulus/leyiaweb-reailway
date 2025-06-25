@@ -480,26 +480,43 @@ class ChatState(rx.State):
         return ""
 
    # ÚNICO CAMBIO REQUERIDO EN ESTE ARCHIVO
-@rx.event
-def limpiar_chat(self):
-    """Reinicia el estado del chat y los archivos a sus valores iniciales."""
-    self.messages = []
-    self.thread_id = None
-    self.file_info_list = []
-    self.processing = False
-    self.uploading = False
-    self.upload_progress = 0
-    self.ocr_progress = ""
-    self.streaming_response = ""
-    self.streaming = False
-    self.thinking_seconds = 0
-    self.upload_error = ""
-    self.focus_chat_input = False
-    self.current_question = ""
-    self.chat_history = []  # Asegurándonos de que esta también se limpie
-    logger.info("[DEBUG] ChatState.limpiar_chat ejecutado y estado reseteado.")
-
     @rx.event
-    def limpiar_chat_y_redirigir(self):
-        self.limpiar_chat() 
-        return rx.redirect("/")
+    def limpiar_chat(self):
+        """Reinicia el estado del chat y los archivos a sus valores iniciales."""
+        self.messages = []
+        self.thread_id = None
+        self.file_info_list = []
+        self.processing = False
+        self.uploading = False
+        self.upload_progress = 0
+        self.ocr_progress = ""
+        self.streaming_response = ""
+        self.streaming = False
+        self.thinking_seconds = 0
+        self.upload_error = ""
+        self.focus_chat_input = False
+        self.current_question = ""
+        self.chat_history = []  # Asegurándonos de que esta también se limpie
+        logger.info("[DEBUG] ChatState.limpiar_chat ejecutado y estado reseteado.")
+        # Finalmente, llamamos al inicializador para que vuelva a poner el mensaje
+        yield self.initialize_chat()
+
+
+        @rx.event
+        def limpiar_chat_y_redirigir(self):
+            self.limpiar_chat() 
+            return rx.redirect("/")
+        
+        # 2. CREAMOS UN EVENTO PARA INICIALIZAR EL CHAT
+    @rx.event
+    def initialize_chat(self):
+        """Añade el mensaje de bienvenida al cargar la página."""
+        # Solo añade el mensaje si el chat está vacío
+        if not self.messages:
+            self.messages = [
+                {
+                    "role": "assistant",
+                    "content": "¡Hola! Soy tu Asistente Legal Constitucional. Puedes hacerme una pregunta o subir un documento para analizarlo."
+                }
+            ]
+        

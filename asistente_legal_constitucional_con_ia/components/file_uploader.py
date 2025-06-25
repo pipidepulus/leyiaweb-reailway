@@ -26,13 +26,13 @@ def file_uploader() -> rx.Component:
         rx.text(
             "Soportados: PDF, DOCX, TXT (hasta 30 pág. escaneadas)",
             size="2",
-            color_scheme=INFO_TEXT_COLOR, # Ahora usa "gray"
+            color="blue", # Ahora usa "gray"
             weight="medium",
         ),
         rx.text(
             f"{files_used_count}/{MAX_FILES} usados, {files_available_count} disponibles",
             size="2",
-            color_scheme=INFO_TEXT_COLOR, # Ahora usa "gray"
+            color="blue", # Ahora usa "gray"
             weight="medium",
         ),
         
@@ -77,10 +77,11 @@ def file_uploader() -> rx.Component:
                         size="2",
                         # Aquí no usamos color_scheme="gray" porque "iris" se ve mejor para feedback positivo.
                         # "iris" es un morado-azulado que contrasta bien.
-                        color_scheme="iris",
+                        color="blue",
                         mt="0.5em", height="1.5em", white_space="nowrap",
                         overflow="hidden", text_overflow="ellipsis",
                         width="100%", transition="all 0.3s ease",
+                        font_weight="bold",
                     ),
                     rx.cond(
                         ChatState.upload_error != "",

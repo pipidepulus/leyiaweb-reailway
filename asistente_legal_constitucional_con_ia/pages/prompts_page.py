@@ -19,20 +19,19 @@ initial_data: Dict[str, List[Prompt]] = {
 1. Problema que aborda. 
 2. Objetivos principales. 
 3. Mecanismos o cambios clave que propone. 
-4. Implicaciones preliminares más evidentes.
-Salida en formato Markdown (md).""",
+4. Implicaciones preliminares más evidentes.""",
         ),
         Prompt(
             title="1.2. Prompt: Extracción Específica de la Exposición de Motivos",
             description="Este prompt se enfoca en extraer las justificaciones y metas explícitas directamente de la fuente.",
             content="""Del texto de la Exposición de Motivos del "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`), extrae y lista textualmente las frases o párrafos que describen: a) la justificación de la necesidad de la propuesta y b) los objetivos explícitos que persigue.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="1.3. Prompt: Identificación de Materia Dominante",
             description="Este prompt tiene como objetivo definir el núcleo temático de la norma.",
             content="""Analiza el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`). Identifica y describe en una frase concisa cuál es la materia dominante o el núcleo temático esencial de esta propuesta/norma. Justifica brevemente tu elección basándote en el título, el objeto (si lo tiene) y el contenido general.
-Salida en formato Markdown (md).""",
+""",
         ),
     ],
     "Fase 2: Identificación del Marco Constitucional Aplicable": [
@@ -40,13 +39,13 @@ Salida en formato Markdown (md).""",
             title="2.1. Prompt: Listado de Principios Constitucionales",
             description="Este prompt busca mapear los principios constitucionales que podrían ser afectados o desarrollados por la norma.",
             content="""Considerando el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`), identifica y lista al menos CINCO principios constitucionales colombianos que sean directamente relevantes o que podrían verse implicados por sus disposiciones. Para cada principio, explica brevemente (1-2 frases) su conexión con el proyecto/ley.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="2.2. Prompt: Identificación de Derechos Fundamentales",
             description="Este prompt clasifica el impacto de la norma sobre los derechos fundamentales.",
             content="""Analiza el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`). Enumera los derechos fundamentales (según la Constitución Política de Colombia) que son: a) Promovidos o protegidos. b) Potencialmente limitados o restringidos por esta norma. Cita los artículos del proyecto/ley que sustentan tu identificación.
-Salida en formato Markdown (md) en dos secciones claras.""",
+""",
         ),
     ],
     "Fase 3: Análisis de Constitucionalidad Formal (Vicios de Procedimiento)": [
@@ -56,7 +55,7 @@ Salida en formato Markdown (md) en dos secciones claras.""",
             content="""Respecto al "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`), que regula [Materia principal]:
 1. ¿Tiene el Congreso de la República competencia para legislar sobre esta materia según la Constitución? Cita artículos constitucionales.
 2. ¿La materia regulada exige un tipo de ley especial (orgánica, estatutaria)? Si es así, ¿el proyecto parece seguir el trámite adecuado (según la información disponible en el archivo)?
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="3.2 Prompt (Análisis de Unidad de Materia - Skeleton):",
@@ -66,19 +65,19 @@ Salida en formato Markdown (md).""",
 2.  Listado de hasta TRES disposiciones que podrían considerarse ajenas a ese núcleo (si las hay).
 3.  Argumentación breve para cada disposición señalada, explicando por qué podría vulnerar la unidad de materia.
 4.  Conclusión preliminar.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="3.3 Prompt (Impacto Fiscal - Ley 819/2003):",
             description="Evalúa el cumplimiento del análisis de impacto fiscal según la Ley 819 de 2003.",
             content="""Analiza si la Exposición de Motivos del "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`) cumple con las exigencias del Artículo 7 de la Ley 819 de 2003 respecto al análisis del impacto fiscal de las normas que ordenan gasto o conceden beneficios. Identifica si se mencionan costos fiscales y fuentes de ingreso para cubrirlos.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="3.4 Prompt (Consulta Previa - Identificación de Necesidad):",
             description="Determina la necesidad de consulta previa para comunidades étnicas.",
             content="""Considerando el objeto y alcance del "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`), determina si sus disposiciones podrían afectar directamente a comunidades indígenas o afrocolombianas. Si es así, argumenta por qué sería necesario el requisito de consulta previa según la Constitución y la jurisprudencia.
-Salida en formato Markdown (md).""",
+""",
         ),
     ],
     "Fase 4: Análisis de Constitucionalidad Material (Vicios de Fondo)": [
@@ -90,43 +89,43 @@ Salida en formato Markdown (md).""",
 2.  Idoneidad: ¿La medida es conducente para alcanzar el fin?
 3.  Necesidad: ¿Existe una alternativa menos lesiva?
 4.  Proporcionalidad estricta: ¿Los beneficios superan la afectación al derecho?
-Concluye sobre su constitucionalidad. Salida en formato Markdown (md).""",
+Concluye sobre su constitucionalidad.""",
         ),
         Prompt(
             title="4.2 Prompt (Identificación de Conflicto con Jurisprudencia):",
             description="Compara una norma con una sentencia específica de la Corte Constitucional.",
             content="""Analiza el Artículo [Número] del "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`). Compara su contenido con la regla establecida en la Sentencia [Citar Sentencia, ej. C-XXX de AAAA] de la Corte Constitucional, que establece que [Resumir regla jurisprudencial]. ¿Existe concordancia o contradicción? Fundamenta.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="4.3 Prompt (Argumento de Inconstitucionalidad - Chain of Thought):",
             description="Construye un argumento lógico para sostener la inconstitucionalidad de un artículo.",
             content="""Construye un argumento (máximo 3 párrafos) para sostener la inconstitucionalidad del Artículo [Número] del "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) por vulnerar el principio/derecho a [Principio/Derecho Constitucional]. Sigue una estructura lógica: Premisa constitucional, contenido de la norma, y la contradicción resultante.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="4.4 Prompt (Argumento de Defensa de Constitucionalidad - Rol Específico):",
             description="Presenta argumentos clave para defender la constitucionalidad de un artículo.",
             content="""Defiende la constitucionalidad del Artículo [Número] del "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) frente a un cargo por presunta violación de [Principio/Derecho Constitucional]. Presenta TRES argumentos clave para la defensa.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="4.5 Prompt (Identificación de Antinomias con la Constitución):",
             description="Identifica contradicciones directas entre el proyecto/ley y la Constitución.",
             content="""Revisa el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) e identifica hasta TRES disposiciones que podrían presentar una antinomia o contradicción directa con artículos específicos de la Constitución Política de Colombia. Para cada una, cita el artículo del proyecto/ley y el artículo constitucional en conflicto, y explica brevemente la contradicción.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="4.6 Prompt (Análisis de Vaguedad o Ambigüedad con Relevancia Constitucional):",
             description="Evalúa si la vaguedad o ambigüedad de términos puede tener implicaciones constitucionales.",
             content="""Identifica si existen términos o disposiciones en el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) que por su vaguedad o ambigüedad podrían generar inseguridad jurídica o problemas de interpretación con relevancia constitucional (ej. afectando el debido proceso o la aplicación igualitaria de la ley). Señala el artículo y explica el problema.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="4.7 Prompt (Evaluación de Razonabilidad de una Prohibición/Restricción):",
             description="Analiza la razonabilidad de una prohibición o restricción impuesta por la norma.",
             content="""El Artículo [Número] del "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) impone una prohibición/restricción sobre [Actividad/Derecho]. Evalúa la razonabilidad de esta medida considerando el fin que persigue y si la restricción es excesiva o arbitraria.
-Salida en formato Markdown (md).""",
+""",
         ),
     ],
     "Fase 5: Conclusiones y Recomendaciones": [
@@ -134,19 +133,19 @@ Salida en formato Markdown (md).""",
             title="5.1. Prompt: Borrador de Conclusiones de Informe",
             description="Sintetiza los hallazgos clave del análisis en un borrador de conclusiones.",
             content="""Basado en un análisis previo del "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`), donde se identificaron [Mencionar 2-3 hallazgos clave, ej. "un posible vicio de unidad de materia", "una limitación proporcionada al derecho X", "conflicto con la sentencia Y"], redacta un borrador de la sección de "Conclusiones" para un informe de constitucionalidad.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="5.2 Prompt (Sugerencia de Modificación para Mitigar Riesgo):",
             description="Propone una redacción alternativa para un artículo con riesgo de inconstitucionalidad.",
             content="""El Artículo [Número] del "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`) presenta un riesgo de inconstitucionalidad debido a [Breve descripción del riesgo]. Sugiere una redacción alternativa o una adición a este artículo que podría mitigar dicho riesgo, manteniendo el objetivo principal del legislador.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="5.3 Prompt (Identificación de Fortalezas Constitucionales del Proyecto):",
             description="Identifica y justifica aspectos del proyecto alineados con la Constitución.",
             content="""Analiza el "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`) e identifica TRES aspectos o artículos que consideres como fortalezas desde la perspectiva de su alineación con la Constitución Política de Colombia (ej. desarrollo de un mandato constitucional, protección efectiva de un derecho, etc.). Justifica brevemente cada uno.
-Salida en formato Markdown (md).""",
+""",
         ),
     ],
     "Fase 6: Prompts Adicionales (Técnicas Variadas)": [
@@ -154,14 +153,14 @@ Salida en formato Markdown (md).""",
             title="6.1 Prompt (Análisis Comparativo Simple entre dos Artículos):",
             description="Compara dos artículos de diferentes normativas para identificar similitudes, diferencias o conflictos.",
             content="""Compara el Artículo [X] del "[Nombre del Proyecto de Ley A]" (Archivo: `[archivo_A.ext]`) con el Artículo [Y] de la "[Ley B Vigente]" (Archivo: `[archivo_B.ext]`). Describe sus similitudes, diferencias y si existe algún conflicto normativo aparente.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="6.2 Prompt (Few-shot para un tipo de cláusula específica):",
             description="Analiza una cláusula de un proyecto de ley comparándola con un ejemplo de buena práctica.",
             content="""Ejemplo de cláusula que respeta el debido proceso administrativo: "[Texto de ejemplo de cláusula correcta]".
 Analiza el Artículo [Número] del "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`) que establece un procedimiento administrativo. ¿Se asemeja al espíritu del ejemplo proporcionado en cuanto a garantías procesales? Identifica deficiencias si las hay.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="6.3 Prompt (Rol Playing - Debate Simulado):",
@@ -169,49 +168,49 @@ Salida en formato Markdown (md).""",
             content="""Simula un breve debate.
 Rol 1 (Ponente): Defiende la constitucionalidad del Artículo [Número] del "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`) usando un argumento principal.
 Rol 2 (Opositor): Presenta un contraargumento cuestionando su constitucionalidad.
-Presenta ambos argumentos. Salida en formato Markdown (md).""",
+Presenta ambos argumentos.""",
         ),
         Prompt(
             title="6.4 Prompt (Generación de Preguntas para Debate Legislativo):",
             description="Formula preguntas críticas para el debate legislativo sobre un proyecto de ley.",
             content="""Basado en el "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`), formula CINCO preguntas críticas que deberían ser abordadas durante el debate legislativo para asegurar la constitucionalidad y conveniencia de la propuesta.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="6.5 Prompt (Simplificación de Argumento Constitucional Complejo):",
             description="Explica un argumento constitucional complejo en términos más sencillos.",
             content="""La Exposición de Motivos del "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`) contiene el siguiente argumento para justificar [Aspecto X]: "[Citar un párrafo complejo de la exposición de motivos]". Explica este argumento en términos más sencillos (máximo 100 palabras) sin perder su esencia constitucional.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="6.6 Prompt (Evaluación de Coherencia Interna con Principios Enunciados):",
             description="Analiza si el articulado de un proyecto es coherente con los principios enunciados en su exposición de motivos.",
             content="""La Exposición de Motivos del "[Nombre del Proyecto de Ley]" (Archivo: `[nombre_del_archivo.ext]`) enuncia que se basa en los principios de [Principio A] y [Principio B]. Analiza si el articulado del proyecto es coherente y desarrolla efectivamente dichos principios. Señala inconsistencias si existen.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="6.7 Prompt (Análisis de Progresividad y No Regresividad de Derechos Sociales):",
             description="Evalúa si una modificación a la regulación de un derecho social cumple con los principios de progresividad y no regresividad.",
             content="""Si el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) modifica la regulación de un derecho social (ej. salud, educación, vivienda), evalúa si la nueva propuesta cumple con el principio de progresividad y la prohibición de regresividad en materia de derechos sociales, conforme a la jurisprudencia constitucional colombiana.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="6.8 Prompt (Identificación de Impacto en Minorías o Grupos Vulnerables):",
             description="Identifica si disposiciones de un proyecto podrían tener un impacto desproporcionado en minorías o grupos vulnerables.",
             content="""Analiza el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) e identifica si alguna de sus disposiciones podría tener un impacto desproporcionado (positivo o negativo) o un trato diferencial hacia minorías étnicas, grupos LGBTIQ+, personas con discapacidad, u otros grupos de especial protección constitucional.
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="6.9 Prompt (Verificación de Sanciones y Debido Proceso Sancionatorio):",
             description="Verifica si un régimen sancionatorio propuesto respeta los principios del debido proceso.",
             content="""Si el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) establece un régimen sancionatorio, verifica si las sanciones propuestas y el procedimiento para imponerlas respetan los principios del debido proceso (legalidad, tipicidad, favorabilidad, non bis in idem, derecho de defensa, etc.).
-Salida en formato Markdown (md).""",
+""",
         ),
         Prompt(
             title="6.10 Prompt (Concepto Final Breve - Combinación):",
             description="Emite un concepto breve sobre la constitucionalidad general de un proyecto, destacando fortalezas y riesgos.",
             content="""Emite un concepto breve (máximo TRES párrafos) sobre la constitucionalidad general del "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`), destacando su principal fortaleza constitucional y su principal riesgo o vicio de inconstitucionalidad.
-Salida en formato Markdown (md).""",
+""",
         ),
     ],
 }
@@ -264,6 +263,7 @@ def render_prompt_card(prompt: Prompt, phase_key: str, index: int) -> rx.Compone
                     rx.icon(tag="copy", margin_left="0.5em"),
                     on_click=PromptsState.copy_to_clipboard_and_show_feedback(prompt.content, phase_key, index),
                     size="2",
+                    color_scheme="blue",
                 ),
                 width="100%",
                 margin_top="1em",
@@ -285,7 +285,7 @@ def prompts_page() -> rx.Component:
     # ... (el contenido de la función prompts_page no cambia)
     content = rx.container(
         rx.vstack(
-            rx.heading("Metodología de Prompts para Análisis Constitucional con IA", size="7", align="center", margin_top="1em"),
+            rx.heading("Metodología de Prompts para Análisis Constitucional con IA", size="7", align="center", margin_top="1em", margin_bottom="1em"),
             rx.text(
                 (
                     "Un prompt es una instrucción escrita que se le da a una inteligencia artificial "

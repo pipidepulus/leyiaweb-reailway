@@ -12,13 +12,28 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
     return rx.box(
         rx.hstack(
             # Volvemos a los avatares simples para garantizar estabilidad
-            rx.avatar(
-                fallback=rx.cond(is_user, "U", "AI"),
-                size="2",
-                color_scheme=rx.cond(is_user, ACCENT_COLOR, "green"),
-                variant="solid",
-                flex_shrink="0",  # Avatar no se encoge
-            ),
+             rx.flex(
+                 rx.cond(
+                     is_user,
+                     rx.avatar(
+                         src="/usuario.png",
+                         fallback="US",
+                    size="2",
+                    color_scheme="blue",
+                    variant="solid",
+                    flex_shrink="0",
+                ),
+                rx.avatar(
+                    src="/balanza.png",
+                    fallback="BT",
+                    size="2",
+                    color_scheme="green",
+                    variant="solid",
+                    flex_shrink="0",
+                ),
+             ),            
+            spacing="2",
+        ),
             rx.box(
                 rx.markdown(
                     message["content"],
@@ -37,8 +52,8 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
                 padding_x="1em",
                 padding_y="0.75em",
                 border_radius="var(--radius-4)",
-                bg=rx.cond(is_user, f"var(--{ACCENT_COLOR}-3)", "var(--gray-2)"),
-                color=rx.cond(is_user, f"var(--{ACCENT_COLOR}-12)", "var(--gray-12)"),
+                bg=rx.cond(is_user, "#e0e7ff", "#d3dff8"),
+                color=rx.cond(is_user, "black", "black"),
                 position="relative",
                 max_width="85%",
                 min_width="0",  # Permite que se encoja
@@ -58,7 +73,8 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
         ),
         width="100%",
         min_width="0",
-        padding_x="0.5rem",  # Pequeño padding lateral        
+        padding_x="0.5rem",  # Pequeño padding lateral   
+        margin_bottom="0.75rem",  # Espacio entre mensajes     
     )
 
 def chat_input_area() -> rx.Component:
@@ -66,7 +82,7 @@ def chat_input_area() -> rx.Component:
     return rx.box(
         rx.form(
             rx.hstack(
-                rx.text_area(
+                rx.el.textarea(
                     name="prompt",
                     id="chat-input-box",
                     placeholder="Escribe tu pregunta aquí... para enviar pulsa ➤",
@@ -77,12 +93,15 @@ def chat_input_area() -> rx.Component:
                     min_height="60px",
                     max_height="200px",
                     py="0.5em",
+                    enter_key_submit=True,
                     class_name="flex-1 border-0 focus:outline-none focus:ring-0 bg-transparent",
                     style={
+                        "font-size": "16px",
                         "white-space": "pre-wrap",
                         "word-wrap": "break-word", 
                         "overflow-wrap": "break-word",
                     },
+                    
                 ),
                 rx.icon_button(
                     rx.cond(
@@ -135,7 +154,7 @@ def chat_area() -> rx.Component:
             },
         ),
         chat_input_area(),
-        spacing="0",
+        spacing="1",
         height="100%",
         width="100%",
         max_width="100%",  # Previene desbordamiento del contenedor principal
@@ -149,4 +168,7 @@ def chat() -> rx.Component:
         height="100vh",
         width="100%",
         class_name="bg-gray-50",
+         # ¡ESTE ES EL CAMBIO CLAVE!
+        # Llama al evento initialize_chat cuando el componente se monta.
+        on_mount=ChatState.initialize_chat,
     )

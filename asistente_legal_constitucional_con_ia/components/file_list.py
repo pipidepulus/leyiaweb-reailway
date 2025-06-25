@@ -34,15 +34,15 @@ def file_list() -> rx.Component:
     return rx.box(
         rx.heading(
             "Archivos Recientes", size="3", weight="medium",
-            color_scheme="gray", margin_bottom="0.5em",
+            color="blue", margin_bottom="0.5em",
         ),
         rx.vstack(
             rx.foreach(archivos, file_row),
             rx.cond(
                 ~hay_archivos,
                 rx.text(
-                    "No hay archivos subidos.", size="2", color_scheme="gray",
-                    font_style="italic", text_align="center", padding_y="1em",
+                    "No hay archivos subidos.", size="2", color="blue",
+                    font_style="italic", text_align="center", padding_y="1em", font_weight="bold",
                 )
             ),
             spacing="2", width="100%",

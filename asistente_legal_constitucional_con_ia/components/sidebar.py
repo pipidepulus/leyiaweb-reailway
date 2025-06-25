@@ -17,16 +17,16 @@ def sidebar() -> rx.Component:
         rx.vstack(
             rx.hstack(
                 rx.image(src="/balanza.png", height="2em"),
-                rx.heading("Asistente Legal", size="6"),
+                rx.heading("Asistente Legal", size="6", color="blue", weight="bold", ),
                 width="100%",
             ),
             rx.divider(),
-            rx.link("Inicio", href="/", style={"width": "100%"}),
+            rx.link("Inicio", href="/", style={"width": "100%", "color":"blue", "font-weight": "bold"}),
             clerk.signed_in(
                 rx.vstack(
-                    rx.link("Asistente Constitucional", href="/asistente", width="100%"),
-                    rx.link("Explorar Proyectos de Ley", href="/proyectos", width="100%"),
-                    rx.link("Prompts", href="/prompts", width="100%"),
+                    rx.link("Asistente Constitucional", href="/asistente", width="100%", style={"color":"blue", "font-weight": "bold"}),
+                    rx.link("Explorar Proyectos de Ley", href="/proyectos", width="100%", style={"color":"blue", "font-weight": "bold"}),
+                    rx.link("Prompts", href="/prompts", width="100%", style={"color":"blue", "font-weight": "bold"}),
                     spacing="5",
                     width="100%",
                     align_items="start",

@@ -9,7 +9,7 @@ def main_layout(content: rx.Component, use_container: bool = True) -> rx.Compone
     
     return rx.box(
         rx.hstack(
-            sidebar(),
+            rx.desktop_only(sidebar()),
             content_wrapper(
                 content,
                 padding="2em",

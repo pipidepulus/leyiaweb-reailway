@@ -116,3 +116,5 @@ class AppState(rx.State):
     def limpiar_prompts_y_redirigir(self):
         # Aquí podrías resetear prompts editados si quisieras
         return rx.redirect("/")
+    
+    

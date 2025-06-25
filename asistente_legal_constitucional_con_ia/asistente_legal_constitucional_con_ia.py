@@ -6,6 +6,7 @@ import os
 import reflex as rx
 from dotenv import load_dotenv
 import reflex_clerk_api as clerk
+from asistente_legal_constitucional_con_ia.states.chat_state import ChatState
 
 # --- Carga de variables de entorno ---
 load_dotenv()
@@ -26,8 +27,13 @@ app = rx.App(
         has_background=True,
         radius="large",
         accent_color="grass",
-           ),
+
+           ),    
+    stylesheets=[
+        "/global.css",  # La ruta es relativa a assets y debe iniciar con /
+    ],
 )
+
 
 # --- Página Principal (Index) ---
 # La página de inicio no necesita protección, ya que gestiona ambos casos (logueado/deslogueado).
@@ -48,20 +54,27 @@ def index() -> rx.Component:
                     "Bienvenido al Asistente Legal Constitucional",
                     size="7",
                     margin_bottom="1rem",
+                    color_scheme="blue",
+                    weight="bold",
+                    text_align="center",
+                    class_name="text-shadow",  # Añadimos una clase para sombra de texto
                 ),
                 rx.text(
                     "Sistema especializado en análisis de jurisprudencia y leyes con IA.",
                     size="4",
-                    color_scheme="gray",
+                    color_scheme="blue",
                     margin_bottom="1.5rem",
                 ),
                 rx.text(
                     "Selecciona una opción del menú lateral para comenzar.",
                     size="5",
                     weight="bold",
+                    color_scheme="blue",
+                    margin_bottom="2rem",
                 ),
                 align="center",
                 spacing="3",
+                on_mount=ChatState.limpiar_chat,
             )
         ),
         # Muestra un mensaje y botón de inicio de sesión si no está autenticado
@@ -89,6 +102,7 @@ def index() -> rx.Component:
         ),
         height="80vh",
     )
+    
     # Importante: La página de inicio también debe usar el layout para tener la barra lateral
     return main_layout(content)
 
