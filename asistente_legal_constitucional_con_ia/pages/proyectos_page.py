@@ -134,7 +134,12 @@ def proyectos_page() -> rx.Component:
                 rx.el.p(ProyectosState.error, class_name="text-red-500 mb-4"),
                 rx.cond(
                     ProyectosState.proyectos.length() > 0,
-                    render_table(ProyectosState.proyectos),
+                     # --- AQUÍ ESTÁ EL CAMBIO ---
+                    rx.box(
+                        render_table(ProyectosState.proyectos),
+                        overflow_x="auto" # Permite scroll horizontal en la tabla
+                    ),
+                    # --- FIN DEL CAMBIO ---
                     rx.el.p("No hay proyectos disponibles.", class_name="text-gray-400 text-center py-4"),
                 ),
             ),

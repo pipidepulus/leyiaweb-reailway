@@ -17,6 +17,12 @@ Proyecto = Dict[str, str]
 
 
 class AppState(rx.State):
+    show_drawer: bool = False # Indica si el drawer está abierto o cerrado celular
+
+    def toggle_drawer(self):
+        """Cambia la visibilidad del drawer (menú celular)."""
+        self.show_drawer = not self.show_drawer
+
     # --- Variables de Proyectos ---
     proyectos: List[Proyecto] = []
     proyectos_cargando: bool = False

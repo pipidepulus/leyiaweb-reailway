@@ -2,6 +2,7 @@
 import reflex as rx
 import reflex_clerk_api as clerk
 from .asistente_sidebar import asistente_sidebar
+from ..states.app_state import AppState # <-- ¡IMPORTANTE AÑADIR ESTA LÍNEA!
 
 class SidebarState(rx.State):
     """Estado para controlar la visibilidad de los componentes de la barra lateral."""
@@ -21,7 +22,7 @@ def sidebar() -> rx.Component:
                 width="100%",
             ),
             rx.divider(),
-            rx.link("Inicio", href="/", style={"width": "100%", "color":"blue", "font-weight": "bold"}),
+            rx.link("Inicio", href="/", style={"width": "100%", "color":"blue", "font-weight": "bold"}, on_click=AppState.toggle_drawer),
             clerk.signed_in(
                 rx.vstack(
                     rx.link("Asistente Constitucional", href="/asistente", width="100%", style={"color":"blue", "font-weight": "bold"}),
@@ -74,6 +75,12 @@ def sidebar() -> rx.Component:
         
         # --- ESTILOS DEL CONTENEDOR PRINCIPAL ---
         spacing="5",
+        height="100%", # Ocupa toda la altura del contenedor padre (sea el box o el drawer)
+        width="100%",  # Ocupa todo el ancho del contenedor padre
+        align_items="stretch" # Para que los enlaces ocupen todo el ancho
+
+        '''
+        spacing="5",
         width="350px",
         min_width="350px",
         height="100vh",
@@ -82,4 +89,5 @@ def sidebar() -> rx.Component:
         top="0",
         border_right="1px solid var(--gray-4)",
         flex_shrink="0",
+        '''
     )
