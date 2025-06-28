@@ -4,6 +4,7 @@ import reflex as rx
 from ..components.layout import main_layout
 from typing import List, Dict, Any
 from ..util.auth import require_login  # <-- 1. IMPORTAMOS EL DECORADOR
+from ..states.prompts_state import PromptsState as ScrollState, PROMPTS_CONTAINER_ID
 
 class Prompt(rx.Base):
     title: str
@@ -215,24 +216,24 @@ Presenta ambos argumentos.""",
     ],
 }
 
-class PromptsState(rx.State):
+class PromptsState(ScrollState):
     """Maneja el estado y la lógica para la página de la biblioteca de prompts."""
     prompt_phases: Dict[str, List[Prompt]] = initial_data
-    copied_feedback: Dict[str, bool] = {}
+    prompt_copied_feedback: Dict[str, bool] = {}
 
     def handle_prompt_change(self, phase_key: str, index: int, new_content: str):
         self.prompt_phases[phase_key][index].content = new_content
         prompt_unique_id = f"{phase_key}-{index}"
-        if self.copied_feedback.get(prompt_unique_id):
-            new_feedback_state = self.copied_feedback.copy()
+        if self.prompt_copied_feedback.get(prompt_unique_id):
+            new_feedback_state = self.prompt_copied_feedback.copy()
             new_feedback_state[prompt_unique_id] = False
-            self.copied_feedback = new_feedback_state
+            self.prompt_copied_feedback = new_feedback_state
 
     def copy_to_clipboard_and_show_feedback(self, content: str, phase_key: str, index: int):
         prompt_unique_id = f"{phase_key}-{index}"
-        current_feedback_state = {k: False for k in self.copied_feedback}
+        current_feedback_state = {k: False for k in self.prompt_copied_feedback}
         current_feedback_state[prompt_unique_id] = True
-        self.copied_feedback = current_feedback_state
+        self.prompt_copied_feedback = current_feedback_state
         return rx.set_clipboard(content)
 
 def render_prompt_card(prompt: Prompt, phase_key: str, index: int) -> rx.Component:
@@ -253,7 +254,7 @@ def render_prompt_card(prompt: Prompt, phase_key: str, index: int) -> rx.Compone
             ),
             rx.hstack(
                 rx.cond(
-                    PromptsState.copied_feedback.get(prompt_unique_id, False),
+                    PromptsState.prompt_copied_feedback.get(prompt_unique_id, False),
                     rx.text("¡Copiado!", color_scheme="green", weight="bold"),
                     rx.text(""),
                 ),
@@ -328,4 +329,18 @@ def prompts_page() -> rx.Component:
         margin="auto",
         width="100%",
     )
-    return main_layout(content)
+    # --- CAMBIO 3: Envolvemos el layout en el contenedor con scroll ---
+    return main_layout(
+        rx.box(
+            content,
+            id=PROMPTS_CONTAINER_ID,
+            overflow_y="auto", 
+            height="calc(100vh - 70px)", # Ajusta este valor si es necesario
+            # Ahora llamamos a las funciones que heredamos de ScrollState a través de nuestra clase PromptsState
+            on_scroll=rx.call_script(
+                f"document.getElementById('{PROMPTS_CONTAINER_ID}').scrollTop",
+                callback=PromptsState.set_scroll_position,
+            ),
+            on_mount=PromptsState.restore_scroll_position,
+        )
+    )

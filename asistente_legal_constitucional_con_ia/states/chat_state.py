@@ -591,4 +591,17 @@ class ChatState(rx.State):
                     "content": "¡Hola! Soy tu Asistente Legal Constitucional. Puedes hacerme una pregunta o subir un documento para analizarlo."
                 }
             ]
-        
+
+    
+    def scroll_to_bottom(self):
+        """
+        Evento que ejecuta un script para desplazar el contenedor de chat hasta el final.
+        """
+        return rx.call_script(
+            """
+            const chat = document.getElementById('chat-messages-container');
+            if (chat) {
+                chat.scrollTop = chat.scrollHeight;
+            }
+            """
+        )

@@ -185,5 +185,8 @@ def chat() -> rx.Component:
         class_name="bg-gray-50",
          # ¡ESTE ES EL CAMBIO CLAVE!
         # Llama al evento initialize_chat cuando el componente se monta.
-        on_mount=ChatState.initialize_chat,
+        on_mount=[
+            ChatState.initialize_chat,
+            ChatState.scroll_to_bottom
+        ]
     )
