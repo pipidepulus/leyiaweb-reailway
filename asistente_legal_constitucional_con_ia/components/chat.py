@@ -105,14 +105,18 @@ def chat_input_area() -> rx.Component:
                         # Le decimos al textarea que ocupe el 100% de su nuevo contenedor (el rx.box)
                         width="100%", 
                         style={
-                            "font-size": "16px",
-                            "white-space": "pre-wrap",
-                            "word-wrap": "break-word", 
-                            "overflow-wrap": "break-word",
+                           "font-size": "16px",
                             "background_color": "transparent",
                             "border": "none",
                             "outline": "none",
                             "box_shadow": "none",
+                            
+                            # Reglas forzadas
+                            "width": "100% !important",
+                            "white-space": "pre-wrap !important",
+                            "word-wrap": "break-word !important", 
+                            "overflow-wrap": "break-word !important",
+                            "box-sizing": "border-box !important",
                         },
                     ),
                     flex_grow=1, # Esta es la propiedad clave para el box.
