@@ -303,22 +303,17 @@ def prompts_page() -> rx.Component:
                 lambda item_tuple: rx.vstack(
                     rx.heading(item_tuple[0], size="6", margin_top="1.5em", margin_bottom="1em"),
                      # --- INICIO DEL CÓDIGO CORRECTO Y DEFINITIVO ---
-                    rx.grid(
+                    rx.vstack(
                         rx.foreach(
                             item_tuple[1],
                             lambda prompt, index: render_prompt_card(prompt, item_tuple[0], index),
                         ),
                         # Espacio entre las tarjetas
-                        gap="4", 
-                        # Definición de columnas responsivas
-                        grid_template_columns=[
-                            "repeat(1, 1fr)",  # Base: 1 columna
-                            "repeat(1, 1fr)",  # sm: 1 columna
-                            "repeat(2, 1fr)",  # md: 2 columnas
-                            "repeat(2, 1fr)",  # lg: 2 columnas
-                            "repeat(3, 1fr)",  # xl: 3 columnas
-                        ],
+                         # En vstack, 'gap' se llama 'spacing' para el espaciado entre elementos
+                        spacing="4", 
                         width="100%",
+                        # Asegura que las tarjetas se estiren para ocupar todo el ancho
+                        align_items="stretch", 
                     ),
                     # --- FIN DEL CÓDIGO CORRECTO Y DEFINITIVO ---
                     rx.divider(margin_y="2em", color_scheme="blue"),

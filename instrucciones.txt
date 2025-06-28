@@ -1,9 +1,0 @@
-python3 -m venv venv
-
-source venv/bin/activate
-
-pip install -r requirements.txt
-
-reflex run
-
-cd /home/pipid/legalcolrag && tree -I '__pycache__|.web|.states|venv|*.pyc|*.db|assets|uploaded_files|*.zip'

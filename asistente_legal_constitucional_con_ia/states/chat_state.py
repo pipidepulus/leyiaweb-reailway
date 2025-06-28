@@ -11,6 +11,8 @@ from asistente_legal_constitucional_con_ia.util.text_extraction import extract_t
 from asistente_legal_constitucional_con_ia.util.scraper import (
     scrape_proyectos_recientes_camara,
 )
+from asistente_legal_constitucional_con_ia.util.tools import buscar_en_internet
+
 import logging
 import fitz
 import pytesseract
@@ -21,6 +23,32 @@ logger = logging.getLogger("asistente_legal")
 
 load_dotenv()
 
+# Define la herramienta para que el Asistente la entienda
+TOOLS_DEFINITION = [
+    {
+        "type": "function",
+        "function": {
+            "name": "buscar_en_internet",
+            "description": "Busca en internet información actualizada cuando la respuesta no se encuentra en los documentos del knowledge base. Útil para noticias, datos recientes o para encontrar fuentes externas.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "La consulta de búsqueda precisa para buscar en internet. Debe ser específica."
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    }
+]
+
+# Un mapa para llamar a tus funciones Python fácilmente
+AVAILABLE_TOOLS = {
+    "buscar_en_internet": buscar_en_internet,
+}
+# --- FIN DEL NUEVO CÓDIGO ---
 
 class Message(TypedDict):
     role: str
@@ -384,62 +412,106 @@ class ChatState(rx.State):
             logger.info(
                 "generate_response_streaming: Mensaje de usuario creado en el thread.")
 
+              # --- INICIO DE LA SOLUCIÓN ---
+            # 1. Definimos las herramientas que vamos a usar para este run específico.
+            #    Empezamos con las herramientas de función que siempre están disponibles.
+            tools_for_run = TOOLS_DEFINITION.copy()
+
+            # 2. Si hay adjuntos, significa que queremos usar file_search.
+            #    Lo añadimos a la lista de herramientas para este run.
+            if attachments_for_message:
+                logger.info("Habilitando la herramienta 'file_search' para este run.")
+                tools_for_run.append({"type": "file_search"})
+
+            # 3. Creamos el run pasándole la lista COMPLETA de herramientas disponibles.
             run_stream = await asyncio.to_thread(
                 client.beta.threads.runs.create,
                 thread_id=self.thread_id,
                 assistant_id=self.assistant_id,
+                tools=tools_for_run,  # <-- Usamos nuestra lista dinámica
                 stream=True
             )
+            # --- FIN DE LA SOLUCIÓN ---
             logger.info(
                 "generate_response_streaming: Run creado con stream=True.")
 
             first_chunk_processed = False
             accumulated_response = ""
-            for event in run_stream:
-                if event.event == 'thread.message.delta':
-                    delta = event.data.delta
-                    if delta.content:
-                        text_chunk = delta.content[0].text.value
-                        if text_chunk:
+                # --- INICIO DEL CAMBIO CLAVE: BUCLE WHILE ---
+            while True:
+                should_break_outer_loop = False
+                
+                # Itera sobre los eventos del stream actual
+                for event in run_stream:
+                    if event.event == 'thread.message.delta':
+                        delta = event.data.delta
+                        if delta.content:
+                            text_chunk = delta.content[0].text.value
+                            if text_chunk:
+                                async with self:
+                                    if not first_chunk_processed:
+                                        self.messages[-1]["content"] = ""
+                                        first_chunk_processed = True
+                                    accumulated_response += text_chunk
+                                    self.messages[-1]["content"] = accumulated_response
+                                yield
+                                if len(accumulated_response) % 100 == 0:
+                                    yield ChatState.scroll_to_bottom
+
+                    elif event.event == 'thread.run.requires_action':
+                        logger.info("Run requires action...")
+                        run_id = event.data.id
+                        tool_outputs = []
+
+                            # --- CAMBIO IMPORTANTE: Actualizar la UI una sola vez antes de la herramienta ---
+                        # Para evitar múltiples yields que puedan causar problemas de conexión.
+                        async with self:
+                            # Obtenemos la primera query para mostrar al usuario
+                            first_query = json.loads(event.data.required_action.submit_tool_outputs.tool_calls[0].function.arguments).get('query', '...')
+                            self.messages[-1]["content"] = f"Buscando en internet: '{first_query}'..."
+                        yield # Un solo yield para actualizar la UI
+                        
+                        for tool_call in event.data.required_action.submit_tool_outputs.tool_calls:
+                            function_name = tool_call.function.name
+                            arguments = json.loads(tool_call.function.arguments)
+                            if function_name in AVAILABLE_TOOLS:                                
+                                output = await asyncio.to_thread(AVAILABLE_TOOLS[function_name], **arguments)
+                                tool_outputs.append({"tool_call_id": tool_call.id, "output": output})
+
+                        if tool_outputs:
+                            logger.info("Enviando resultados de la herramienta...")
+                            # Creamos un NUEVO stream con los resultados
+                            run_stream = await asyncio.to_thread(
+                                client.beta.threads.runs.submit_tool_outputs,
+                                thread_id=self.thread_id,
+                                run_id=run_id,
+                                tool_outputs=tool_outputs,
+                                stream=True
+                            )
+                            # Rompemos el bucle INTERNO para que el bucle WHILE continúe con el NUEVO stream
+                            break 
+                    
+                    # --- CAMBIO CLAVE: Manejo de finalización ---
+                    elif event.event in ['thread.run.completed', 'thread.run.failed', 'error']:
+                        if event.event == 'thread.run.completed':
+                            logger.info("Stream: Run completed.")
+                        else:
+                            error_message = f"Stream: Run fallido o con error. Evento: {event.event}, Data: {event.data}"
+                            logger.error(error_message)
                             async with self:
-                                if not first_chunk_processed:
-                                    self.messages[-1]["content"] = ""
-                                    self.streaming_response = ""
-                                    first_chunk_processed = True
-                                accumulated_response += text_chunk
-                                self.streaming_response = accumulated_response
-                                self.messages[-1]["content"] = accumulated_response
-                            yield
-                            # Autoscroll durante el streaming cada pocos chunks
-                            if len(accumulated_response) % 100 == 0:  # Cada ~100 caracteres
-                                yield ChatState.scroll_to_bottom
+                                self.messages[-1]["content"] = "Se produjo un error al procesar la solicitud."
+                        
+                        # Marcamos que el bucle EXTERNO debe terminar
+                        should_break_outer_loop = True
+                        # Rompemos el bucle INTERNO
+                        break 
 
-                elif event.event == 'thread.run.requires_action':
-                    logger.info(
-                        f"Run requires action: {event.data.required_action.submit_tool_outputs.tool_calls}")
-                    pass
-
-                elif event.event == 'thread.run.completed':
-                    logger.info("Stream: Run completed.")
-                    async with self:
-                        self.streaming_response = accumulated_response
+                # Si se marcó la finalización, rompemos el bucle EXTERNO
+                if should_break_outer_loop:
                     break
-                elif event.event == 'thread.run.failed':
-                    logger.error(f"Stream: Run failed. Run data: {event.data}")
-                    error_message = "Error del asistente."
-                    if event.data.last_error:
-                        error_message = f"Error del asistente: {event.data.last_error.message}"
-                    async with self:
-                        self.messages[-1]["content"] = error_message
-                    break
-                elif event.event == 'error':
-                    logger.error(f"Stream: Error event: {event.data}")
-                    async with self:
-                        self.messages[-1]["content"] = "Error en el stream del asistente."
-                    break
-
-            logger.info(
-                "generate_response_streaming: Streaming con iteración manual completado.")
+            # --- FIN DEL CAMBIO CLAVE: BUCLE WHILE ---
+            
+            logger.info("generate_response_streaming: Bucle principal completado.")
 
         except APIError as e:
             logger.error(f"Error de API de OpenAI: {e.message}")

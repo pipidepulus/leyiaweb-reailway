@@ -37,7 +37,14 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
             rx.box(
                 rx.markdown(
                     message["content"],
-                    class_name="prose prose-base max-w-none break-words",                    
+                    class_name="prose prose-base max-w-none break-words",
+                    component_map={
+                        "a": lambda *children, **props: rx.link(
+                            *children,      # Pasa el texto del enlace
+                            is_external=True, # Abre en una nueva pestaña
+                            **props         # Pasa las demás propiedades (href, etc.)
+                        )
+                    }                    
                 ),
                 rx.cond(
                     ~is_user,
@@ -82,26 +89,34 @@ def chat_input_area() -> rx.Component:
     return rx.box(
         rx.form(
             rx.hstack(
-                rx.el.textarea(
-                    name="prompt",
-                    id="chat-input-box",
-                    placeholder="Escribe tu pregunta aquí... para enviar pulsa ➤",
-                    value=ChatState.current_question,
-                    on_change=ChatState.set_current_question,
-                    disabled=ChatState.processing,
-                    resize="vertical",
-                    min_height="60px",
-                    max_height="200px",
-                    py="0.5em",
-                    enter_key_submit=True,
-                    class_name="flex-1 border-0 focus:outline-none focus:ring-0 bg-transparent",
-                    style={
-                        "font-size": "16px",
-                        "white-space": "pre-wrap",
-                        "word-wrap": "break-word", 
-                        "overflow-wrap": "break-word",
-                    },
-                    
+                rx.box(
+                    rx.el.textarea(
+                        name="prompt",
+                        id="chat-input-box",
+                        placeholder="Escribe tu pregunta aquí... pulsa Enter para enviar.",
+                        value=ChatState.current_question,
+                        on_change=ChatState.set_current_question,
+                        disabled=ChatState.processing,
+                        resize="vertical",
+                        min_height="60px",
+                        max_height="200px",
+                        py="0.5em",
+                        enter_key_submit=True,
+                        # Le decimos al textarea que ocupe el 100% de su nuevo contenedor (el rx.box)
+                        width="100%", 
+                        style={
+                            "font-size": "16px",
+                            "white-space": "pre-wrap",
+                            "word-wrap": "break-word", 
+                            "overflow-wrap": "break-word",
+                            "background_color": "transparent",
+                            "border": "none",
+                            "outline": "none",
+                            "box_shadow": "none",
+                        },
+                    ),
+                    flex_grow=1, # Esta es la propiedad clave para el box.
+                    width="0" # Truco de CSS para que flex_grow funcione correctamente
                 ),
                 rx.icon_button(
                     rx.cond(

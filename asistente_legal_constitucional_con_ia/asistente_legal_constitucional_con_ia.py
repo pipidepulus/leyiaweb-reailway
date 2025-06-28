@@ -82,7 +82,15 @@ def index() -> rx.Component:
             rx.vstack(
                 # --- CÓDIGO CORRECTO PARA ESTE ENFOQUE ---
         clerk.sign_in_button(
-            rx.button("Iniciar Sesión", size="3", variant="solid")
+            rx.button(
+                "Iniciar Sesión",
+                size="3",
+                variant="solid",
+                style={
+                    "background_color": "blue",  # azul
+                    "color": "white",               # texto blanco
+                },
+            )
         ),
         rx.vstack(
         rx.text("¿No tienes cuenta?"),
@@ -134,5 +142,6 @@ app = clerk.wrap_app(
     app,
     publishable_key=os.getenv("CLERK_PUBLISHABLE_KEY"),
     secret_key=os.getenv("CLERK_SECRET_KEY"),
-    register_user_state=True, 
+    register_user_state=True,
+    localization={"language": "es_ES",} 
 )

@@ -65,6 +65,12 @@ def sidebar() -> rx.Component:
                     rx.button(
                         "Iniciar Sesión",
                         width="100%",
+                        style={
+                            "font_weight": "bold",
+                            "text_transform": "uppercase",
+                            "color": "white",
+                            "background_color": "blue",  # azul personalizado
+                        },
                     )
                 ),               
             ),

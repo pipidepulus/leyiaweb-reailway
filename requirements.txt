@@ -10,3 +10,4 @@ beautifulsoup4
 requests
 lxml
 reflex-clerk-api
+tavily-python
