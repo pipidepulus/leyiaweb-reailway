@@ -3,6 +3,9 @@
 # Usa una imagen base oficial de Python.
 FROM python:3.12-slim
 
+ARG CACHE_BUSTER=1
+
+
 # Establece variables de entorno para un comportamiento óptimo de Python en Docker.
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
