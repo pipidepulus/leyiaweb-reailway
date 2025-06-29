@@ -6,7 +6,7 @@ config = rx.Config(
     api_url="http://localhost:8000", # Esto será sobreescrito en producción
     show_built_with_reflex=False,
     plugins=[
-        tailwind.TailwindV3Plugin(), # type: ignore
+        tailwind.TailwindV3Plugin(), 
     ],
 )
 
