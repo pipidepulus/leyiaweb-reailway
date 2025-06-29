@@ -84,40 +84,43 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
         margin_bottom="0.75rem",  # Espacio entre mensajes     
     )
 
-# Reemplaza la función completa en tu archivo asistente_legal_constitucional_con_ia/components/chat.py
+# Versión que funcionaba localmente, restaurada como punto de partida.
+# Usa rx.el.textarea con enter_key_submit y el wrapper rx.box.
 
 def chat_input_area() -> rx.Component:
-    """
-    Área de entrada de texto final, siguiendo las mejores prácticas de Reflex:
-    - Usa rx.form con on_submit para capturar el envío.
-    - Usa rx.text_area para un renderizado estable.
-    - Usa rx.grid para un layout predecible.
-    """
+    """Área de entrada de texto con soporte para texto largo."""
     return rx.box(
-        # 1. El Formulario es el contenedor principal para la lógica de envío.
         rx.form(
-            # 2. Usamos un layout de Grid, que es más estable que Flexbox para este caso.
-            rx.grid(
-                # 3. Usamos el componente de alto nivel rx.text_area, que no tiene problemas de renderizado.
-                rx.text_area(
-                    value=ChatState.current_question,
-                    id="chat-input-box",
-                    placeholder="Escribe tu pregunta aquí...",
-                    on_change=ChatState.set_current_question,
-                    disabled=ChatState.processing,
-                    size="3",
-                    style={
-                        "width": "100%",
-                        "min_height": "60px",
-                        "max_height": "200px",
-                        "background_color": "transparent",
-                        "border": "none",
-                        "outline": "none",
-                        "box_shadow": "none",
-                        "resize": "none",
-                    },
+            rx.hstack(
+                # Envolvemos el textarea en un rx.box que se expandirá.
+                rx.box(
+                    rx.el.textarea(
+                        name="prompt",
+                        id="chat-input-box",
+                        placeholder="Escribe tu pregunta aquí... pulsa Enter para enviar.",
+                        value=ChatState.current_question,
+                        on_change=ChatState.set_current_question,
+                        disabled=ChatState.processing,
+                        resize="vertical",
+                        min_height="60px",
+                        max_height="200px",
+                        py="0.5em",
+                        enter_key_submit=True,
+                        width="100%", 
+                        style={
+                            "font-size": "16px",
+                            "white-space": "pre-wrap",
+                            "word-wrap": "break-word", 
+                            "overflow-wrap": "break-word",
+                            "background_color": "transparent",
+                            "border": "none",
+                            "outline": "none",
+                            "box_shadow": "none",
+                        },
+                    ),
+                    flex_grow=1,
+                    width="0"
                 ),
-                # 4. El botón tiene type="submit", que activa el on_submit del formulario.
                 rx.icon_button(
                     rx.cond(
                         ChatState.processing,
@@ -129,18 +132,14 @@ def chat_input_area() -> rx.Component:
                     size="3",
                     color_scheme="indigo",
                 ),
-                # Configuración del Grid: una columna flexible y una columna de tamaño automático.
-                columns="1fr auto",
-                spacing="3",
                 align_items="end",
+                spacing="3",
                 width="100%",
             ),
-            # 5. La lógica de envío está centralizada aquí, como dice la documentación.
             on_submit=ChatState.send_message,
-            reset_on_submit=True,
+            reset_on_submit=False, # Como lo tenías originalmente.
             width="100%",
         ),
-        # Estilos del contenedor exterior
         padding_x="1em",
         padding_y="0.5em",
         border="1px solid var(--gray-4)",
