@@ -99,7 +99,7 @@ def chat_input_area() -> rx.Component:
                         id="chat-input-box",
                         placeholder="Escribe tu pregunta aquí... pulsa Enter para enviar.",
                         value=ChatState.current_question,
-                        on_change=ChatState.set_current_question,
+                        on_change=ChatState.set_current_question.debounce(25),
                         disabled=ChatState.processing,
                         resize="vertical",
                         min_height="60px",
