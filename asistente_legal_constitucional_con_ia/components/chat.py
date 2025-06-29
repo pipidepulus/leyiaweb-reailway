@@ -84,44 +84,40 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
         margin_bottom="0.75rem",  # Espacio entre mensajes     
     )
 
+# Reemplaza la función completa en tu archivo asistente_legal_constitucional_con_ia/components/chat.py
+
 def chat_input_area() -> rx.Component:
-    """Área de entrada de texto con soporte para texto largo."""
+    """
+    Área de entrada de texto final, siguiendo las mejores prácticas de Reflex:
+    - Usa rx.form con on_submit para capturar el envío.
+    - Usa rx.text_area para un renderizado estable.
+    - Usa rx.grid para un layout predecible.
+    """
     return rx.box(
+        # 1. El Formulario es el contenedor principal para la lógica de envío.
         rx.form(
-            rx.hstack(
-                rx.box(
-                    rx.el.textarea(
-                        name="prompt",
-                        id="chat-input-box",
-                        placeholder="Escribe tu pregunta aquí... pulsa Enter para enviar.",
-                        value=ChatState.current_question,
-                        on_change=ChatState.set_current_question,
-                        disabled=ChatState.processing,
-                        resize="vertical",
-                        min_height="60px",
-                        max_height="200px",
-                        py="0.5em",
-                        enter_key_submit=True,
-                        # Le decimos al textarea que ocupe el 100% de su nuevo contenedor (el rx.box)
-                        width="100%", 
-                        style={
-                           "font-size": "16px",
-                            "background_color": "transparent",
-                            "border": "none",
-                            "outline": "none",
-                            "box_shadow": "none",
-                            
-                            # Reglas forzadas
-                            "width": "100% !important",
-                            "white-space": "pre-wrap !important",
-                            "word-wrap": "break-word !important", 
-                            "overflow-wrap": "break-word !important",
-                            "box-sizing": "border-box !important",
-                        },
-                    ),
-                    flex_grow=1, # Esta es la propiedad clave para el box.
-                    width="0" # Truco de CSS para que flex_grow funcione correctamente
+            # 2. Usamos un layout de Grid, que es más estable que Flexbox para este caso.
+            rx.grid(
+                # 3. Usamos el componente de alto nivel rx.text_area, que no tiene problemas de renderizado.
+                rx.text_area(
+                    value=ChatState.current_question,
+                    id="chat-input-box",
+                    placeholder="Escribe tu pregunta aquí...",
+                    on_change=ChatState.set_current_question,
+                    disabled=ChatState.processing,
+                    size="3",
+                    style={
+                        "width": "100%",
+                        "min_height": "60px",
+                        "max_height": "200px",
+                        "background_color": "transparent",
+                        "border": "none",
+                        "outline": "none",
+                        "box_shadow": "none",
+                        "resize": "none",
+                    },
                 ),
+                # 4. El botón tiene type="submit", que activa el on_submit del formulario.
                 rx.icon_button(
                     rx.cond(
                         ChatState.processing,
@@ -131,15 +127,20 @@ def chat_input_area() -> rx.Component:
                     type="submit",
                     disabled=ChatState.processing | (ChatState.current_question.strip() == ""),
                     size="3",
-                    color_scheme=ACCENT_COLOR,
+                    color_scheme="indigo",
                 ),
-                align_items="end",
+                # Configuración del Grid: una columna flexible y una columna de tamaño automático.
+                columns="1fr auto",
                 spacing="3",
+                align_items="end",
+                width="100%",
             ),
+            # 5. La lógica de envío está centralizada aquí, como dice la documentación.
             on_submit=ChatState.send_message,
-            reset_on_submit=False,
+            reset_on_submit=True,
             width="100%",
         ),
+        # Estilos del contenedor exterior
         padding_x="1em",
         padding_y="0.5em",
         border="1px solid var(--gray-4)",
