@@ -332,6 +332,10 @@ class ChatState(rx.State):
         
         # Limpiamos el input en la UI
         self.current_question = ""
+
+         # --- CAMBIO CLAVE: LIMPIAR EL INPUT EN EL FRONTEND ---
+        # Le decimos al navegador que encuentre el textarea por su ID y vacíe su valor.
+        yield rx.call_script("document.getElementById('chat-input-box').value = ''")
         
         if not self.has_api_keys:
             logger.error(
@@ -353,7 +357,7 @@ class ChatState(rx.State):
             "send_message: Disparando thinking_timer y generate_response_streaming. self.processing ahora es True.")
         yield ChatState.scroll_to_bottom  # Autoscroll al agregar mensaje del usuario
         yield ChatState.thinking_timer
-        yield
+        #yield
         yield ChatState.generate_response_streaming
         logger.info("send_message: FIN (eventos en segundo plano iniciados).")
 
