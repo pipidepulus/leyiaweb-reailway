@@ -11,8 +11,9 @@ class SidebarState(rx.State):
         """Comprueba si la ruta actual es la página del asistente."""
         return self.router.page.path == "/asistente"
 
-def sidebar() -> rx.Component:
+def sidebar(is_in_drawer: bool = False) -> rx.Component:
     """La barra de navegación principal de la aplicación."""
+    link_click_handler = AppState.toggle_drawer if is_in_drawer else None
     return rx.vstack(
         # --- SECCIÓN SUPERIOR ---
         rx.vstack(
@@ -22,12 +23,12 @@ def sidebar() -> rx.Component:
                 width="100%",
             ),
             rx.divider(),
-            rx.link("Inicio", href="/", style={"width": "100%", "color":"blue", "font-weight": "bold"}, on_click=AppState.toggle_drawer),
+            rx.link("Inicio", href="/", style={"width": "100%", "color":"blue", "font-weight": "bold"}, on_click=link_click_handler),
             clerk.signed_in(
                 rx.vstack(
-                    rx.link("Asistente Constitucional", href="/asistente", width="100%", style={"color":"blue", "font-weight": "bold"}),
-                    rx.link("Explorar Proyectos de Ley", href="/proyectos", width="100%", style={"color":"blue", "font-weight": "bold"}),
-                    rx.link("Prompts", href="/prompts", width="100%", style={"color":"blue", "font-weight": "bold"}),
+                    rx.link("Asistente Constitucional", href="/asistente", width="100%", style={"color":"blue", "font-weight": "bold"}, on_click=link_click_handler),
+                    rx.link("Explorar Proyectos de Ley", href="/proyectos", width="100%", style={"color":"blue", "font-weight": "bold"}, on_click=link_click_handler),
+                    rx.link("Prompts", href="/prompts", width="100%", style={"color":"blue", "font-weight": "bold"}, on_click=link_click_handler),
                     spacing="5",
                     width="100%",
                     align_items="start",

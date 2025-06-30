@@ -41,7 +41,7 @@ def main_layout(content: rx.Component, use_container: bool = True) -> rx.Compone
         ),
         # 2. Contenido del Sidebar móvil
         rx.box(
-            sidebar(), # Reutilizamos el sidebar aquí
+            sidebar(is_in_drawer=True), # Reutilizamos el sidebar aquí
             display=["block", "block", "none", "none"], # Solo existe en vistas móviles
             position="fixed",
             top="0",

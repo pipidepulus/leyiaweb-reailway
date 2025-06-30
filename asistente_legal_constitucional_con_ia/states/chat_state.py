@@ -11,7 +11,7 @@ from asistente_legal_constitucional_con_ia.util.text_extraction import extract_t
 from asistente_legal_constitucional_con_ia.util.scraper import (
     scrape_proyectos_recientes_camara,
 )
-from asistente_legal_constitucional_con_ia.util.tools import buscar_en_internet
+from asistente_legal_constitucional_con_ia.util.tools import buscar_documento_legal
 
 import logging
 import fitz
@@ -28,7 +28,7 @@ TOOLS_DEFINITION = [
     {
         "type": "function",
         "function": {
-            "name": "buscar_en_internet",
+            "name": "buscar_documento_legal",
             "description": "Busca en internet información actualizada cuando la respuesta no se encuentra en los documentos del knowledge base. Útil para noticias, datos recientes o para encontrar fuentes externas.",
             "parameters": {
                 "type": "object",
@@ -46,7 +46,7 @@ TOOLS_DEFINITION = [
 
 # Un mapa para llamar a tus funciones Python fácilmente
 AVAILABLE_TOOLS = {
-    "buscar_en_internet": buscar_en_internet,
+    "buscar_documento_legal": buscar_documento_legal,
 }
 # --- FIN DEL NUEVO CÓDIGO ---
 
