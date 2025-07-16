@@ -25,6 +25,7 @@ if IS_RENDER:
         api_url=api_url,
         cors_allowed_origins=cors_origins,
         tailwind=None,
+        show_reflex_links=False,
     )
 else:
     # Desarrollo local
@@ -36,4 +37,5 @@ else:
         api_url="http://localhost:8000",
         cors_allowed_origins=["http://localhost:3000"],
         tailwind=None,
+        show_reflex_links=False,
     )
