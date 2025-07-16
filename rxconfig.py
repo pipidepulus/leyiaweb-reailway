@@ -10,12 +10,11 @@ if IS_RENDER:
     hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     api_url = f"https://{hostname}"
     
-    # CORS: dominios del frontend que pueden acceder al backend
+    # CORS: dominios que pueden acceder al backend
     cors_origins = [
-        "https://legalcolrag-frontend.onrender.com",
-        "https://lawyer-ai.co",
-        "https://www.lawyer-ai.co",
-        api_url,  # El propio backend también
+        api_url,  # El propio backend
+        # Aquí agregar tu dominio de frontend cuando lo tengas:
+        # "https://tu-frontend-app.onrender.com",
     ]
     
     config = rx.Config(
