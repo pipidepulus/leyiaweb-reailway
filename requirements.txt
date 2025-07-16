@@ -1,6 +1,5 @@
 
 reflex==0.7.14
-reflex-clerk-api
 python-dotenv
 tavily-python
 openai

@@ -3,7 +3,6 @@
 import reflex as rx
 from ..components.layout import main_layout
 from typing import List, Dict, Any
-from ..util.auth import require_login  # <-- 1. IMPORTAMOS EL DECORADOR
 from ..states.prompts_state import PromptsState as ScrollState, PROMPTS_CONTAINER_ID
 
 class Prompt(rx.Base):
@@ -278,9 +277,7 @@ def render_prompt_card(prompt: Prompt, phase_key: str, index: int) -> rx.Compone
     )
 
 
-# --- CAMBIO FINAL AQUÍ ---
-# 2. REEMPLAZAMOS @rx.page POR @require_login
-@require_login
+# --- PÁGINA DE PROMPTS ---
 def prompts_page() -> rx.Component:
     """Define el contenido de la página de prompts."""
     # ... (el contenido de la función prompts_page no cambia)

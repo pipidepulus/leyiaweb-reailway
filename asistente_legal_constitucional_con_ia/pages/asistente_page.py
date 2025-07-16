@@ -4,10 +4,7 @@
 import reflex as rx
 from ..components.layout import main_layout
 from ..components.chat import chat
-from ..util.auth import require_login  # <-- 1. Importamos nuestro decorador
 
-# 2. Quitamos @rx.page y añadimos @require_login
-@require_login
 def asistente_page() -> rx.Component:
     """
     Define el contenido de la página del asistente, que ahora es solo el chat.
