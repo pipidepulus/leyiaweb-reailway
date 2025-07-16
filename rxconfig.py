@@ -6,36 +6,34 @@ IS_RENDER = os.environ.get("RENDER") is not None
 PORT = int(os.environ.get("PORT", 8000))
 
 if IS_RENDER:
-    # En Render - configuración especial para WebSockets
+    # En Render - backend separado
     hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     api_url = f"https://{hostname}"
-    cors_origins = [api_url]
     
-    # CONFIGURACIÓN ESPECÍFICA PARA RENDER:
-    backend_config = {
-        "backend_host": "0.0.0.0",
-        "backend_port": PORT,
-        "api_url": api_url,
-        "cors_allowed_origins": cors_origins,
-        # Configuraciones adicionales para WebSockets en Render:
-        "backend_transport": "websocket",
-        "frontend_path": "/",
-    }
+    # CORS: dominios del frontend que pueden acceder al backend
+    cors_origins = [
+        "https://legalcolrag-frontend.onrender.com",
+        "https://lawyer-ai.co",
+        "https://www.lawyer-ai.co",
+        api_url,  # El propio backend también
+    ]
+    
+    config = rx.Config(
+        app_name="asistente_legal_constitucional_con_ia",
+        backend_host="0.0.0.0",
+        backend_port=PORT,
+        api_url=api_url,
+        cors_allowed_origins=cors_origins,
+        tailwind=None,
+    )
 else:
     # Desarrollo local
-    api_url = "http://localhost:8000"
-    cors_origins = ["http://localhost:3000"]
-    
-    backend_config = {
-        "backend_host": "0.0.0.0",
-        "backend_port": PORT,
-        "frontend_port": 3000,
-        "api_url": api_url,
-        "cors_allowed_origins": cors_origins,
-    }
-
-config = rx.Config(
-    app_name="asistente_legal_constitucional_con_ia",
-    tailwind=None,
-    **backend_config
-)
+    config = rx.Config(
+        app_name="asistente_legal_constitucional_con_ia",
+        backend_host="0.0.0.0",
+        backend_port=PORT,
+        frontend_port=3000,
+        api_url="http://localhost:8000",
+        cors_allowed_origins=["http://localhost:3000"],
+        tailwind=None,
+    )
