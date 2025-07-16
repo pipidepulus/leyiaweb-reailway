@@ -13,7 +13,7 @@ if IS_RENDER:
     # CORS: dominios que pueden acceder al backend
     cors_origins = [
         api_url,  # El propio backend
-        # Aquí agregar tu dominio de frontend cuando lo tengas:
+        # TODO: Agregar dominio de frontend cuando despliegues:
         # "https://tu-frontend-app.onrender.com",
     ]
     
