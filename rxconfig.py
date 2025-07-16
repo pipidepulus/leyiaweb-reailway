@@ -12,9 +12,8 @@ if IS_RENDER:
     
     # CORS: dominios que pueden acceder al backend
     cors_origins = [
-        api_url,  # El propio backend
-        # TODO: Agregar dominio de frontend cuando despliegues:
-        # "https://tu-frontend-app.onrender.com",
+        api_url,  # El propio backend: https://legalcolrag-noclerk.onrender.com
+        "https://legalcolrag-noclerk-1.onrender.com",  # Tu frontend
     ]
     
     config = rx.Config(
