@@ -67,7 +67,9 @@ def main_layout(content: rx.Component, use_container: bool = True) -> rx.Compone
                 position="sticky",
                 top="0",
                 border_right="1px solid var(--gray-4)",
-                padding="1em", # Añadimos el padding que quitamos del componente sidebar
+                padding="1em", 
+                overflow_y="auto",
+                overflow_x="hidden",
             ),
             
             # CONTENEDOR DEL CONTENIDO DE LA PÁGINA
@@ -76,12 +78,14 @@ def main_layout(content: rx.Component, use_container: bool = True) -> rx.Compone
                 padding_top=["3.5rem", "3.5rem", "2em", "2em"],
                 padding_x=["1em", "1em", "2em", "2em"],
                 flex_grow=1,
-                height="100%",
-                overflow_y="auto",
+                height="100vh",
+                max_height="100vh",
+                overflow_y="hidden", 
             ),
             align="start",
             height="100vh",
             width="100%",
+             overflow="hidden", 
         ),
         height="100vh",
         width="100%",

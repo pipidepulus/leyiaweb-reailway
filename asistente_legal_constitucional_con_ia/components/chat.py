@@ -62,7 +62,7 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
                 bg=rx.cond(is_user, "#e0e7ff", "#d3dff8"),
                 color=rx.cond(is_user, "black", "black"),
                 position="relative",
-                max_width="85%",
+                max_width="90%",
                 min_width="0",  # Permite que se encoja
                 word_wrap="break-word",
                 overflow_wrap="break-word",
@@ -80,7 +80,7 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
         ),
         width="100%",
         min_width="0",
-        padding_x="0.5rem",  # Pequeño padding lateral   
+        padding_x="0.25rem",  # Pequeño padding lateral   
         margin_bottom="0.75rem",  # Espacio entre mensajes     
     )
 
@@ -140,17 +140,16 @@ def chat_input_area() -> rx.Component:
             reset_on_submit=False, # Como lo tenías originalmente.
             width="100%",
         ),
-        padding_x="1em",
+        padding_x="0.5em", 
         padding_y="0.5em",
         border="1px solid var(--gray-4)",
         border_radius="var(--radius-4)",
         bg="white",
-        position="sticky",
-        bottom="1em",
-        width="calc(100% - 2em)",
-        margin_x="1em",
+        width="calc(100% - 1em)",
+        margin_x="0.5em",
         margin_bottom="1em",
         box_shadow="0 0 15px rgba(0,0,0,0.05)",
+        flex_shrink="0",
     )
 
 def chat_area() -> rx.Component:
@@ -159,12 +158,13 @@ def chat_area() -> rx.Component:
         rx.box(
             rx.foreach(ChatState.messages, message_bubble),
             id="chat-messages-container",
-            padding_x="1rem",
+            padding_x="0.5rem",
             padding_y="1rem",
             width="100%",
             flex_grow=1,
             overflow_y="auto",
-            overflow_x="hidden",  # Previene scroll horizontal
+            overflow_x="hidden",
+            min_height="0",
             style={
                 "scroll-behavior": "smooth",
                 "display": "flex",
@@ -173,7 +173,7 @@ def chat_area() -> rx.Component:
             },
         ),
         chat_input_area(),
-        spacing="1",
+        spacing="0",
         height="100%",
         width="100%",
         max_width="100%",  # Previene desbordamiento del contenedor principal
@@ -184,9 +184,15 @@ def chat() -> rx.Component:
     """Componente principal de chat exportado."""
     return rx.box(
         chat_area(),
-        height="100vh",
+        height="calc(100vh - 60px)",
         width="100%",
+        overflow="hidden",
         class_name="bg-gray-50",
+        style={
+            "display": "flex",
+            "flex-direction": "column",
+            "align-items": "stretch",
+        },
          # ¡ESTE ES EL CAMBIO CLAVE!
         # Llama al evento initialize_chat cuando el componente se monta.
         on_mount=[

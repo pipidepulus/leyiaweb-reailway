@@ -118,7 +118,7 @@ def index() -> rx.Component:
 
 # ### CAMBIO 3: Añade TUS páginas de login y registro ###
 # Aquí es donde le dices a Reflex que la URL '/login' debe usar tu archivo login_page.py
-app.add_page(login_page, route="/login", title="Iniciar Sesión")
+#app.add_page(login_page, route="/login", title="Iniciar Sesión")
 # Si tienes una página de registro, añádela también:
 # app.add_page(signup_page, route="/sign-up", title="Registro")
 

@@ -78,9 +78,35 @@ def render_table(data: rx.Var[list]) -> rx.Component:
     return rx.el.table(
         rx.el.thead(
             rx.el.tr(
-                rx.el.th("Número", class_name="border border-blue-400 bg-blue-100 text-center"),
-                rx.el.th("Título", class_name="border border-blue-400 bg-blue-100"),
-                rx.el.th("Enlace", class_name="border border-blue-400 bg-blue-100 text-center"),
+                rx.el.th(
+                    "Número", 
+                    style={
+                        "border": "1px solid #60a5fa",
+                        "background_color": "#dbeafe", 
+                        "text_align": "center",
+                        "padding": "8px",
+                        "font_weight": "bold"
+                    }
+                ),
+                rx.el.th(
+                    "Título", 
+                    style={
+                        "border": "1px solid #60a5fa",
+                        "background_color": "#dbeafe",
+                        "padding": "8px",
+                        "font_weight": "bold"
+                    }
+                ),
+                rx.el.th(
+                    "Enlace", 
+                    style={
+                        "border": "1px solid #60a5fa",
+                        "background_color": "#dbeafe",
+                        "text_align": "center",
+                        "padding": "8px",
+                        "font_weight": "bold"
+                    }
+                ),
             )
         ),
         rx.el.tbody(
@@ -89,27 +115,45 @@ def render_table(data: rx.Var[list]) -> rx.Component:
                 lambda row: rx.el.tr(
                     rx.el.td(
                         row["Número"],
-                        class_name="border border-blue-400 text-center",
-                        style={"font_size": "14px"},
+                        style={
+                            "border": "1px solid #60a5fa",
+                            "text_align": "center",
+                            "padding": "8px",
+                            "font_size": "14px"
+                        }
                     ),
                     rx.el.td(
                         row["Título"],
-                        class_name="border border-blue-400",
-                        style={"font_size": "14px"},
+                        style={
+                            "border": "1px solid #60a5fa",
+                            "padding": "8px",
+                            "font_size": "14px"
+                        }
                     ),
                     rx.el.td(
                         rx.cond(
                             row["Enlace"] != "N/A",
-                            rx.link("Ver enlace", href=row["Enlace"], target="_blank", class_name="text-blue-600 underline"),
+                            rx.link("Ver enlace", href=row["Enlace"], target="_blank", color="blue"),
                             "N/A",
                         ),
-                        class_name="border border-blue-400 text-center",
+                        style={
+                            "border": "1px solid #60a5fa",
+                            "text_align": "center",
+                            "padding": "8px"
+                        }
                     ),
-                    class_name="bg-blue-50 hover:bg-blue-100",
+                    style={
+                        "background_color": "#eff6ff"
+                    }
                 ),
             )
         ),
-        class_name="min-w-full table-auto border mt-4 border-blue-400",
+        style={
+            "width": "100%",
+            "border_collapse": "collapse",
+            "margin_top": "1rem",
+            "border": "1px solid #60a5fa"
+        }
     )
 
 
@@ -119,8 +163,24 @@ def render_table(data: rx.Var[list]) -> rx.Component:
 def proyectos_page() -> rx.Component:
     """Define el contenido de la página de proyectos."""
     content = rx.el.div(
-        rx.el.h3("Explorar Proyectos de Ley", class_name="font-semibold text-blue-700 text-2xl mb-2"),
-        rx.el.p("Consulta últimas propuestas (Cámara).", class_name="text-base text-blue-600 mb-4"),
+         rx.vstack(
+            rx.heading(
+                "Explorar Proyectos de Ley", 
+                size="7",
+                color="blue", 
+                weight="bold",
+                text_align="center"  # ← AGREGAR ESTO
+            ),
+            rx.text(
+                "Consulta últimas propuestas (Cámara).", 
+                size="4",
+                color="blue",
+                text_align="center"  # ← AGREGAR ESTO
+            ),
+            width="100%",
+            align="center",
+            margin_bottom="1.5em"
+        ),
         rx.cond(
             ProyectosState.cargando,
             rx.el.div(

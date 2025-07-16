@@ -13,11 +13,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 def extract_text_from_bytes(
-    file_bytes: bytes, filename: str, progress_callback=None, skip_ocr=False
+    file_bytes: bytes, filename: str, progress_callback=None
 ) -> Optional[str]:
     """
     Extracts text from a file given as bytes (PDF, DOCX, TXT).
-    For PDF, it attempts direct extraction and falls back to OCR unless skip_ocr=True.
+    For PDF, it attempts direct extraction and falls back to OCR.
     If progress_callback is provided, it is called with (current_page, total_pages).
     """
     try:
@@ -31,16 +31,10 @@ def extract_text_from_bytes(
             ) as doc:
                 for page in doc:
                     text += page.get_text()
-            
             if len(text.strip()) < 100:
                 logging.warning(
                     f"Minimal text from '{filename}'. Trying OCR."
                 )
-                
-                # Si skip_ocr=True, devolver el texto mínimo y dejar que el llamador maneje el OCR
-                if skip_ocr:
-                    return text.strip()
-                
                 with tempfile.NamedTemporaryFile(
                     delete=False, suffix=".pdf"
                 ) as tmp:

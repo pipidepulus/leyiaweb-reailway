@@ -20,11 +20,13 @@ __pycache__/
 .states
 .web
 
-instrucciones.txt
+rxconfig1.py
 
-functions.txt
+system_prompt_V1.txt
 
-system_prompt.txt
+/asistente_legal_constitucional_con_ia/components/file_uploader1.py
+
+/asistente_legal_constitucional_con_ia/states/chat_state1.py
 
 
 

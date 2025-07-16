@@ -4,8 +4,9 @@ import reflex as rx
 import reflex_clerk_api as clerk
 
 from ..components.layout import main_layout
+from ..states.chat_state import ChatState  # Asegúrate de que la ruta sea correcta
 
-@rx.page(route="/login", title="Login")
+@rx.page(route="/login", title="Login", on_load=ChatState.initialize_chat)
 def login_page() -> rx.Component:
     """
     Página que muestra los componentes de inicio de sesión y registro de Clerk.
