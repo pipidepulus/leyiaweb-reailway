@@ -1,5 +1,6 @@
 # asistente_legal_constitucional_con_ia/states/prompts_state.py
 import reflex as rx
+from reflex_local_auth import LocalAuthState
 from .app_state import AppState
 
 # ID único para el contenedor de scroll de la página de prompts

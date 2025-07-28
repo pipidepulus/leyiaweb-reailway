@@ -1,6 +1,7 @@
 """Página para visualizar proyectos de ley recientes, usando el layout principal."""
 
 import reflex as rx
+from ..utils.auth_decorator import require_login
 from ..components.layout import main_layout
 import requests
 from bs4 import BeautifulSoup
@@ -158,6 +159,7 @@ def render_table(data: rx.Var[list]) -> rx.Component:
 
 # --- CAMBIO PRINCIPAL AQUÍ ---
 # --- PÁGINA DE PROYECTOS ---
+@require_login
 def proyectos_page() -> rx.Component:
     """Define el contenido de la página de proyectos."""
     content = rx.el.div(

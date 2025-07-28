@@ -27,8 +27,38 @@ load_dotenv()
 
 # Define la herramienta para que el Asistente la entienda
 TOOLS_DEFINITION = [
-    {
-        "type": "function",
+        @rx.event
+    def initialize_chat_simple(self):
+        """Inicializa el chat sin métodos de monitoreo que causan recompilaciones."""
+        if not self.messages:
+            self.messages = [
+                {
+                    "role": "assistant",
+                    "content": "¡Hola! Soy LeyIA, tu Asistente Legal. "
+                            "Puedes hacerme una pregunta o subir un "
+                            "documento para analizarlo.",
+                }
+            ]
+    
+    @rx.event
+    def initialize_chat(self):
+        """Añade el mensaje de bienvenida e inicia monitoreo al cargar la página."""
+        if not self.messages:
+            self.messages = [
+                {
+                    "role": "assistant",
+                    "content": "¡Hola! Soy LeyIA, tu Asistente Legal. "
+                            "Puedes hacerme una pregunta o subir un "
+                            "documento para analizarlo.",
+                }
+            ]
+        
+        # Iniciar monitoreo automático si hay credenciales
+        if self.has_api_keys:
+            return [
+                ChatState.monitor_session_health,
+                ChatState.cleanup_by_timestamp
+            ]function",
         "function": {
             "name": "buscar_documento_legal",
             "description": "Herramienta de búsqueda avanzada para encontrar documentos legales colombianos (leyes, sentencias, gacetas) aplicando la estrategia más adecuada para cada tipo.",
@@ -70,7 +100,7 @@ class FileInfo(TypedDict):
     uploaded_at: float 
 
 
-class ChatState(rx.State):
+class ChatState(reflex_local_auth.LocalAuthState):
     """Manages the chat interface, file uploads, and AI interaction."""
 
     messages: list[Message] = []
@@ -160,8 +190,6 @@ class ChatState(rx.State):
     @rx.var
     def has_api_keys(self) -> bool:
         return bool(self.assistant_id and self.openai_api_key)
-
-   
 
     @rx.event(background=True)
     async def upload_timer(self):
@@ -712,10 +740,9 @@ class ChatState(rx.State):
         logger.info("ChatState.limpiar_chat ejecutado.")
 
     @rx.event
-    async def show_create_notebook_dialog(self):
+    def show_create_notebook_dialog(self):
         """Muestra el diálogo para crear notebook."""
-        auth_state = await self.get_state(reflex_local_auth.LocalAuthState)
-        if not auth_state.is_authenticated:
+        if not self.is_authenticated:
             return rx.toast.error("Debes estar autenticado para crear notebooks.")
         
         if len(self.messages) < 2:
@@ -731,8 +758,7 @@ class ChatState(rx.State):
     @rx.event
     async def create_notebook_from_current_chat(self):
         """Crea un notebook a partir de la conversación actual."""
-        auth_state = await self.get_state(reflex_local_auth.LocalAuthState)
-        if not auth_state.is_authenticated:
+        if not self.is_authenticated:
             yield rx.toast.error("Debes estar autenticado para crear notebooks.")
             return
         
@@ -751,13 +777,10 @@ class ChatState(rx.State):
                 from ..models.database import Notebook
                 import json
                 
-                # Obtener el usuario autenticado del LocalAuthState
-                auth_state = await self.get_state(reflex_local_auth.LocalAuthState)
-                
                 new_notebook = Notebook(
                     title=title_to_use,
                     content=notebook_content,  # Ahora es string markdown directo
-                    user_id=str(auth_state.authenticated_user.id),
+                    user_id=str(self.authenticated_user.id),
                     notebook_type="analysis"
                 )
                 session.add(new_notebook)
@@ -771,10 +794,9 @@ class ChatState(rx.State):
             yield rx.toast.error(f"Error creando notebook: {str(e)}")
 
     @rx.event
-    async def suggest_notebook_creation(self):
+    def suggest_notebook_creation(self):
         """Sugiere crear un notebook si la conversación es significativa."""
-        auth_state = await self.get_state(reflex_local_auth.LocalAuthState)
-        if (auth_state.is_authenticated and 
+        if (self.is_authenticated and 
             len(self.messages) >= 4 and  # Al menos 2 intercambios
             not self.processing):
             return rx.toast.info(
@@ -806,19 +828,6 @@ class ChatState(rx.State):
             return [
                 ChatState.monitor_session_health,
                 ChatState.cleanup_by_timestamp
-            ]
-
-    @rx.event
-    def initialize_chat_simple(self):
-        """Inicializa el chat sin métodos de monitoreo que causan recompilaciones."""
-        if not self.messages:
-            self.messages = [
-                {
-                    "role": "assistant",
-                    "content": "¡Hola! Soy LeyIA, tu Asistente Legal. "
-                            "Puedes hacerme una pregunta o subir un "
-                            "documento para analizarlo.",
-                }
             ]
 
     @rx.event

@@ -2,6 +2,7 @@
 
 import reflex as rx
 from ..states.chat_state import ChatState
+import reflex_local_auth
 
 # Constante para el color principal de la UI del chat
 ACCENT_COLOR = "indigo"
@@ -183,6 +184,34 @@ def chat_area() -> rx.Component:
 def chat() -> rx.Component:
     """Componente principal de chat exportado."""
     return rx.box(
+        # Diálogo para crear notebook
+        rx.cond(
+            ChatState.show_notebook_dialog,
+            create_notebook_dialog(),
+            rx.fragment()
+        ),
+        
+        # Botón flotante para crear notebook (solo si está autenticado y hay conversación)
+        rx.cond(
+            reflex_local_auth.LocalAuthState.is_authenticated & 
+            (ChatState.messages.length() >= 4) & 
+            (~ChatState.processing),
+            rx.button(
+                rx.icon("book-plus", size=20),
+                "Crear Notebook",
+                on_click=ChatState.show_create_notebook_dialog,
+                position="fixed",
+                bottom="80px",
+                right="20px",
+                z_index=50,
+                size="3",
+                color_scheme="green",
+                variant="solid",
+                box_shadow="lg"
+            ),
+            rx.fragment()
+        ),
+        
         chat_area(),
         height="calc(100vh - 60px)",
         width="100%",
@@ -193,10 +222,60 @@ def chat() -> rx.Component:
             "flex-direction": "column",
             "align-items": "stretch",
         },
-         # ¡ESTE ES EL CAMBIO CLAVE!
-        # Llama al evento initialize_chat cuando el componente se monta.
-        on_mount=[
-            ChatState.initialize_chat,
-            ChatState.scroll_to_bottom
-        ]
+         # Solo inicializar el chat sin los métodos de monitoreo que causan recompilaciones
+        on_mount=ChatState.initialize_chat_simple
+    )
+
+
+def create_notebook_dialog() -> rx.Component:
+    """Diálogo para crear un notebook a partir de la conversación."""
+    return rx.dialog(
+        rx.dialog.trigger(rx.box()),  # Trigger vacío ya que se controla con estado
+        rx.dialog.content(
+            rx.dialog.title("Crear Notebook"),
+            rx.dialog.description(
+                "Convierte tu conversación actual en un notebook editable y persistente."
+            ),
+            
+            rx.vstack(
+                rx.text("Título del notebook:", weight="bold"),
+                rx.input(
+                    placeholder="Ej: Análisis de la Ley 1437 de 2011",
+                    value=ChatState.notebook_title,
+                    on_change=ChatState.set_notebook_title,
+                    width="100%"
+                ),
+                rx.text(
+                    f"Se incluirán {ChatState.messages.length()} mensajes en el notebook.",
+                    size="2",
+                    color="gray"
+                ),
+                spacing="3",
+                width="100%",
+                margin_y="1rem"
+            ),
+            
+            rx.hstack(
+                rx.dialog.close(
+                    rx.button(
+                        "Cancelar",
+                        variant="outline",
+                        on_click=ChatState.hide_create_notebook_dialog
+                    )
+                ),
+                rx.dialog.close(
+                    rx.button(
+                        "Crear Notebook",
+                        on_click=ChatState.create_notebook_from_current_chat,
+                        loading=ChatState.loading if hasattr(ChatState, 'loading') else False
+                    )
+                ),
+                spacing="3",
+                justify="end",
+                width="100%"
+            ),
+            
+            max_width="500px"
+        ),
+        open=ChatState.show_notebook_dialog
     )

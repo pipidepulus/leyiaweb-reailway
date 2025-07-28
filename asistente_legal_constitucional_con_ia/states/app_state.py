@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from typing import Dict, List
+import reflex_local_auth
 
 # --- Modelos de Datos ---
 class Prompt(rx.Base):
@@ -16,7 +17,7 @@ Proyecto = Dict[str, str]
 
 
 
-class AppState(rx.State):
+class AppState(reflex_local_auth.LocalAuthState):
     show_drawer: bool = False # Indica si el drawer está abierto o cerrado celular
 
     def toggle_drawer(self):

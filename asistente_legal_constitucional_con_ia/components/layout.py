@@ -80,7 +80,7 @@ def main_layout(content: rx.Component, use_container: bool = True) -> rx.Compone
                 flex_grow=1,
                 height="100vh",
                 max_height="100vh",
-                overflow_y="hidden", 
+                overflow_y="auto",  # Cambiado de "hidden" a "auto" para permitir scroll
             ),
             align="start",
             height="100vh",

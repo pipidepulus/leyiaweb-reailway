@@ -11,6 +11,10 @@ pandas
 beautifulsoup4
 requests
 lxml
+reflex-local-auth
+sqlalchemy
+sqlmodel
+assemblyai
 
 
 

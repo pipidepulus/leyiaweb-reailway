@@ -1,6 +1,7 @@
 """Página que muestra una biblioteca de prompts, usando el layout principal."""
 
 import reflex as rx
+from ..utils.auth_decorator import require_login
 from ..components.layout import main_layout
 from typing import List, Dict, Any
 from ..states.prompts_state import PromptsState as ScrollState, PROMPTS_CONTAINER_ID
@@ -278,6 +279,7 @@ def render_prompt_card(prompt: Prompt, phase_key: str, index: int) -> rx.Compone
 
 
 # --- PÁGINA DE PROMPTS ---
+@require_login
 def prompts_page() -> rx.Component:
     """Define el contenido de la página de prompts."""
     # ... (el contenido de la función prompts_page no cambia)
