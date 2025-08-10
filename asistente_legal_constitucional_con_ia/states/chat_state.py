@@ -10,7 +10,6 @@ import reflex as rx
 from dotenv import load_dotenv
 from openai import APIError, OpenAI
 from pdf2image import convert_from_bytes
-import reflex_local_auth
 
 from asistente_legal_constitucional_con_ia.util.scraper import (
     scrape_proyectos_recientes_camara,
@@ -714,10 +713,6 @@ class ChatState(rx.State):
     @rx.event
     async def show_create_notebook_dialog(self):
         """Muestra el diálogo para crear notebook."""
-        auth_state = await self.get_state(reflex_local_auth.LocalAuthState)
-        if not auth_state.is_authenticated:
-            return rx.toast.error("Debes estar autenticado para crear notebooks.")
-        
         if len(self.messages) < 2:
             return rx.toast.error("Necesitas al menos una conversación para crear un notebook.")
             
@@ -731,11 +726,6 @@ class ChatState(rx.State):
     @rx.event
     async def create_notebook_from_current_chat(self):
         """Crea un notebook a partir de la conversación actual."""
-        auth_state = await self.get_state(reflex_local_auth.LocalAuthState)
-        if not auth_state.is_authenticated:
-            yield rx.toast.error("Debes estar autenticado para crear notebooks.")
-            return
-        
         if not self.notebook_title.strip():
             yield rx.toast.error("El título no puede estar vacío.")
             return
@@ -751,14 +741,11 @@ class ChatState(rx.State):
                 from ..models.database import Notebook
                 import json
                 
-                # Obtener el usuario autenticado del LocalAuthState
-                auth_state = await self.get_state(reflex_local_auth.LocalAuthState)
-                
                 new_notebook = Notebook(
                     title=title_to_use,
-                    content=notebook_content,  # Ahora es string markdown directo
-                    user_id=str(auth_state.authenticated_user.id),
-                    notebook_type="analysis"
+                    content=json.dumps(notebook_content),  # Guardar como JSON
+                    notebook_type="analysis",
+                    workspace_id="public"  # Nuevo esquema sin user_id
                 )
                 session.add(new_notebook)
                 session.commit()
@@ -773,9 +760,7 @@ class ChatState(rx.State):
     @rx.event
     async def suggest_notebook_creation(self):
         """Sugiere crear un notebook si la conversación es significativa."""
-        auth_state = await self.get_state(reflex_local_auth.LocalAuthState)
-        if (auth_state.is_authenticated and 
-            len(self.messages) >= 4 and  # Al menos 2 intercambios
+        if (len(self.messages) >= 4 and  # Al menos 2 intercambios
             not self.processing):
             return rx.toast.info(
                 "💡 ¿Quieres guardar esta conversación como notebook?",
@@ -915,23 +900,40 @@ class ChatState(rx.State):
                                 if f not in old_files
                             ]
 
-    def _convert_chat_to_notebook(self, chat_messages: List[Dict[str, str]], title: str) -> str:
-        """Convierte mensajes del chat a formato markdown continuo."""
+    def _convert_chat_to_notebook(self, chat_messages: List[Dict[str, str]], title: str) -> Dict[str, Any]:
+        """Convierte mensajes del chat a formato notebook JSON."""
         from datetime import datetime
         
-        markdown_content = f"# {title}\n\n"
-        markdown_content += f"*Notebook generado automáticamente el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}*\n\n"
-        markdown_content += "---\n\n"
+        cells = []
         
+        # Celda de título
+        cells.append({
+            "cell_type": "markdown",
+            "source": [f"# {title}\n\n", f"*Notebook generado automáticamente el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}*\n\n", "---\n\n"]
+        })
+        
+        # Convertir cada intercambio usuario-asistente
         for i, message in enumerate(chat_messages):
             if message["role"] == "user":
-                markdown_content += f"## 🙋 Consulta {(i//2) + 1}\n\n"
-                markdown_content += f"{message['content']}\n\n"
+                cells.append({
+                    "cell_type": "markdown",
+                    "source": [f"## 🙋 Consulta {(i//2) + 1}\n\n", f"{message['content']}\n\n"]
+                })
             elif message["role"] == "assistant":
-                markdown_content += f"### 🤖 Respuesta del Asistente\n\n"
-                markdown_content += f"{message['content']}\n\n"
-                markdown_content += "---\n\n"
+                cells.append({
+                    "cell_type": "markdown",
+                    "source": [f"### 🤖 Respuesta del Asistente\n\n", f"{message['content']}\n\n", "---\n\n"]
+                })
         
-        return markdown_content
+        return {
+            "cells": cells,
+            "metadata": {
+                "kernelspec": {
+                    "display_name": "Legal Analysis",
+                    "language": "markdown",
+                    "name": "legal_analysis"
+                }
+            }
+        }
 
     

@@ -5,7 +5,6 @@ Archivo principal de la aplicación.
 import os
 import reflex as rx
 from dotenv import load_dotenv
-import reflex_local_auth
 from sqlmodel import create_engine, SQLModel
 from asistente_legal_constitucional_con_ia.states.chat_state import ChatState
 from asistente_legal_constitucional_con_ia.models.database import Notebook, AudioTranscription
@@ -14,12 +13,12 @@ from asistente_legal_constitucional_con_ia.models.database import Notebook, Audi
 load_dotenv()
 
 # --- Configuración de la base de datos ---
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///legal_assistant.db")
-engine = create_engine(DATABASE_URL, echo=False)
+#DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///legal_assistant.db")
+#engine = create_engine(DATABASE_URL, echo=False)
 
-def create_tables():
-    """Crea las tablas de la base de datos."""
-    SQLModel.metadata.create_all(engine)
+#def create_tables():
+#    """Crea las tablas de la base de datos."""
+#    SQLModel.metadata.create_all(engine)
 
 # ### CAMBIO 1: Importa tus páginas ###
 from .pages.prompts_page import prompts_page
@@ -35,7 +34,7 @@ app = rx.App(
         appearance="light",
         has_background=True,
         radius="large",
-        accent_color="grass",
+        accent_color="blue",
 
            ),    
     stylesheets=[
@@ -103,20 +102,11 @@ def index() -> rx.Component:
                     rx.hstack(
                         rx.link(
                             rx.button(
-                                "🔐 Iniciar Sesión",
+                                "� Comenzar",
                                 size="4",
                                 color_scheme="blue"
                             ),
-                            href=reflex_local_auth.routes.LOGIN_ROUTE
-                        ),
-                        rx.link(
-                            rx.button(
-                                "📝 Crear Cuenta",
-                                size="4",
-                                variant="outline",
-                                color_scheme="green"
-                            ),
-                            href=reflex_local_auth.routes.REGISTER_ROUTE
+                            href="/asistente"
                         ),
                         spacing="4",
                         justify="center"
@@ -165,17 +155,5 @@ app.add_page(notebooks_page, route="/notebooks", title="Mis Notebooks")
 app.add_page(notebook_viewer_page, route="/notebooks/[notebook_id]", title="Ver Notebook")
 app.add_page(transcription_page, route="/transcription", title="Transcripción de Audio")
 
-# Páginas de autenticación (públicas) - usando las oficiales de reflex-local-auth
-app.add_page(
-    reflex_local_auth.pages.login_page,
-    route=reflex_local_auth.routes.LOGIN_ROUTE,
-    title="Iniciar Sesión"
-)
-app.add_page(
-    reflex_local_auth.pages.register_page,
-    route=reflex_local_auth.routes.REGISTER_ROUTE,
-    title="Crear Cuenta"
-)
-
 # Inicializar la base de datos al arrancar
-create_tables()
+#create_tables()

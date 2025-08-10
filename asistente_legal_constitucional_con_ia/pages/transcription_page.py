@@ -2,12 +2,10 @@
 """Página para transcripción de audio."""
 
 import reflex as rx
-from ..utils.auth_decorator import require_login
 from ..components.layout import main_layout
 from ..states.transcription_state import TranscriptionState
 
 
-@require_login
 def transcription_page() -> rx.Component:
     """Página de transcripción de audio."""
     
@@ -217,7 +215,7 @@ def transcription_page() -> rx.Component:
                 ),
                 
                 rx.cond(
-                    TranscriptionState.transcriptions.length() > 0,
+                    TranscriptionState.transcriptions,
                     rx.vstack(
                         rx.foreach(
                             TranscriptionState.transcriptions,
@@ -248,7 +246,10 @@ def transcription_page() -> rx.Component:
         
         spacing="6",
         width="100%",
-        on_mount=TranscriptionState.load_user_transcriptions_simple
+        on_mount=[
+            TranscriptionState.load_user_transcriptions_simple,
+            TranscriptionState.reset_upload_state  # Limpiar estado al cargar página
+        ]
     )
     
     return main_layout(content)
@@ -268,18 +269,18 @@ def transcription_item(transcription: rx.Var) -> rx.Component:
             rx.spacer(),
             rx.hstack(
                 rx.button(
-                    "Ver Notebook",
+                    "📓 Ver Notebook",
                     on_click=rx.redirect(f"/notebooks/{transcription.notebook_id}"),
                     variant="soft",
                     size="2",
                     disabled=transcription.notebook_id == 0
                 ),
                 rx.button(
-                    "Ver Transcripción",
-                    on_click=rx.redirect(f"/notebooks/{transcription.notebook_id}"),
+                    "🗑️ Eliminar",
+                    on_click=TranscriptionState.delete_transcription(transcription.id),
                     variant="outline",
                     size="2",
-                    disabled=transcription.notebook_id == 0
+                    color_scheme="red"
                 ),
                 spacing="2"
             ),

@@ -2,12 +2,10 @@
 """Página para gestionar notebooks del usuario."""
 
 import reflex as rx
-from ..utils.auth_decorator import require_login
 from ..components.layout import main_layout
 from ..states.notebook_state import NotebookState
 
 
-@require_login
 def notebooks_page() -> rx.Component:
     """Página de gestión de notebooks."""
     
@@ -151,7 +149,6 @@ def notebook_card(notebook: rx.Var) -> rx.Component:
 
 
 # Página para visualizar/editar un notebook específico
-@require_login  
 def notebook_viewer_page() -> rx.Component:
     """Página para visualizar y editar un notebook específico."""
     
@@ -215,16 +212,31 @@ def notebook_viewer_page() -> rx.Component:
                             placeholder="Escribe el contenido markdown aquí...",
                             width="100%",
                             min_height="500px",
-                            max_height="70vh",
-                            font_family="mono",
-                            font_size="14px",
-                            resize="vertical"
+                            max_height="70vh",                            
+                            resize="vertical",                            
+                            style={
+                                "& textarea": {
+                                    "font_size": "16px",
+                                    "font_family": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                                    "font_weight": "400",
+                                    "line_height": "1.7",
+                                    "letter_spacing": "0.025em",
+                                    "color": "var(--gray-12)",
+                                    "background": "transparent",
+                                    "border": "none",
+                                    "outline": "none",
+                                    "padding": "0",
+                                }
+                            }
                         ),
                         width="100%",
-                        padding="1rem",
+                        padding="2rem",  # Mismo padding que el modo visualización
                         background="white",
                         border_radius="lg",
-                        border="1px solid var(--gray-6)"
+                        border="1px solid var(--gray-6)",
+                        max_height="70vh",
+                        overflow="auto",
+                        min_height="400px"  # Mismo min_height que el modo visualización
                     ),
                     # Modo visualización
                     rx.cond(
@@ -261,7 +273,7 @@ def notebook_viewer_page() -> rx.Component:
         ),
         spacing="4",
         width="100%",
-        on_mount=NotebookState.load_notebook_from_url(rx.State.router.page.params["notebook_id"])
+        on_mount=NotebookState.load_notebook_on_page_load
     )
     
     return main_layout(content)

@@ -2,7 +2,6 @@
 
 import reflex as rx
 from ..states.chat_state import ChatState
-import reflex_local_auth
 
 # Constante para el color principal de la UI del chat
 ACCENT_COLOR = "indigo"
@@ -191,9 +190,8 @@ def chat() -> rx.Component:
             rx.fragment()
         ),
         
-        # Botón flotante para crear notebook (solo si está autenticado y hay conversación)
+        # Botón flotante para crear notebook (solo si hay conversación)
         rx.cond(
-            reflex_local_auth.LocalAuthState.is_authenticated & 
             (ChatState.messages.length() >= 4) & 
             (~ChatState.processing),
             rx.button(
