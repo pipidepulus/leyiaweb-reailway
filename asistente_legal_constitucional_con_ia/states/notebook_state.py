@@ -111,36 +111,74 @@ class NotebookState(rx.State):
             yield rx.toast.error(self.error_message)
         finally:
             self.loading = False
-    
+            
     @rx.event
     async def delete_notebook(self, notebook_id: int):
-        """Elimina un notebook."""
-        self.loading = True
+        """Elimina un notebook y su transcripción asociada si existe."""
         try:
             with rx.session() as session:
-                notebook = session.exec(
-                Notebook.select().where(
-                    Notebook.id == notebook_id,
-                    Notebook.workspace_id == "public"
-                )
-            ).first()
+                # Importar aquí para evitar imports circulares
+                from ..models.database import Notebook, AudioTranscription
                 
-                if notebook:
-                    session.delete(notebook)
-                    session.commit()
+                # Buscar el notebook
+                notebook = session.query(Notebook).filter(Notebook.id == notebook_id).first()
+                if not notebook:
+                    self.error_message = "Notebook no encontrado"
+                    yield rx.toast.error(self.error_message)
+                    return
+                
+                # Eliminar transcripciones asociadas completamente
+                associated_transcriptions = session.query(AudioTranscription)\
+                    .filter(AudioTranscription.notebook_id == notebook_id)\
+                    .all()
+                
+                # Eliminar transcripciones asociadas completamente
+                for trans in associated_transcriptions:
+                    print(f"DEBUG: Eliminando transcripción {trans.id} asociada al notebook {notebook_id}")
+                    session.delete(trans)
+                
+                # Eliminar el notebook
+                session.delete(notebook)
+                session.commit()
+                
+                print(f"DEBUG: Eliminado notebook {notebook_id} y {len(associated_transcriptions)} transcripciones")
+                
+                # ✅ CORRECCIÓN: Llamar directamente sin await
+                self.loading = True
+                try:
+                    db_notebooks = session.exec(
+                        Notebook.select().where(
+                            Notebook.workspace_id == "public"
+                        ).order_by(Notebook.updated_at.desc())
+                    ).all()
                     
-                    # Recargar la lista de notebooks
-                    async for event in self.load_user_notebooks():
-                        yield event
-                    yield rx.toast.success("Notebook eliminado exitosamente.")
-                else:
-                    yield rx.toast.error("Notebook no encontrado.")
-                    
+                    self.notebooks = [
+                        NotebookType(
+                            id=nb.id,
+                            title=nb.title,
+                            content=nb.content,
+                            created_at=nb.created_at.isoformat(),
+                            updated_at=nb.updated_at.isoformat(),
+                            notebook_type=nb.notebook_type,
+                            source_data=nb.source_data or ""
+                        )
+                        for nb in db_notebooks
+                    ]
+                except Exception as load_error:
+                    print(f"DEBUG: Error recargando notebooks: {load_error}")
+                finally:
+                    self.loading = False
+                
+                # Limpiar estado de error
+                self.error_message = ""
+                
+                yield rx.toast.success(f"Notebook y {len(associated_transcriptions)} transcripción(es) eliminados correctamente")
+                
         except Exception as e:
-            self.error_message = f"Error al eliminar notebook: {str(e)}"
+            print(f"DEBUG: Error eliminando notebook: {e}")
+            self.error_message = f"Error eliminando notebook: {str(e)}"
             yield rx.toast.error(self.error_message)
-        finally:
-            self.loading = False
+
 
     async def _set_current_notebook_internal(self, notebook_id: int) -> bool:
         """Versión interna sin yield para poder usar con await."""

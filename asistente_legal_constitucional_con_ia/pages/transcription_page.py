@@ -3,215 +3,126 @@
 
 import reflex as rx
 from ..components.layout import main_layout
-from ..states.transcription_state import TranscriptionState
+from ..states.transcription_state import TranscriptionState, TranscriptionType
 
 
 def transcription_page() -> rx.Component:
     """Página de transcripción de audio."""
     
+    is_processing = TranscriptionState.transcribing
+    has_error = TranscriptionState.error_message != ""
+    is_successful = TranscriptionState.current_transcription == "SUCCESS"
+    no_file_selected = rx.selected_files("upload_mp3") == ""
+
     content = rx.vstack(
-        # Header
-        rx.heading("Transcripción de Audio", size="8", color="blue", margin_bottom="2rem"),
+        rx.heading("Transcripción de Audio", size="8", margin_bottom="2rem"),
         
-        # Upload area
-        rx.card(
-            rx.vstack(
-                rx.heading("Subir archivo de audio", size="5"),
-                rx.text("Formatos soportados: MP3", size="2", color="gray"),
-                rx.text("Límite: 5 GB por archivo (usando AssemblyAI)", size="2", color="green"),
-                
-                rx.upload(
-                    rx.vstack(
-                        rx.button(
-                            "📁 Seleccionar archivo MP3",
-                            color="rgb(107, 99, 246)",
-                            bg="white",
-                            border="1px solid rgb(107, 99, 246)",
-                        ),
-                        rx.text(
-                            "Arrastra y suelta un archivo MP3 aquí o haz clic para seleccionar",
-                            size="2",
-                            color="gray"
-                        ),
-                        align_items="center",
-                        spacing="2",
-                    ),
-                    id="upload_mp3",
-                    border="2px dashed rgb(107, 99, 246)",
-                    padding="2em",
-                    border_radius="lg",
-                    width="100%",
-                    accept={"audio/mpeg": [".mp3"]},
-                    max_files=1,
-                    disabled=TranscriptionState.uploading_audio | TranscriptionState.transcribing,
-                    multiple=False,
-                ),
-                
-                # Mostrar archivos seleccionados (siguiendo documentación de Reflex)
-                rx.hstack(
-                    rx.foreach(
-                        rx.selected_files("upload_mp3"), 
-                        lambda file_name: rx.hstack(
-                            rx.icon("file-audio", color="blue"),
-                            rx.text(file_name),
-                            spacing="2"
-                        )
-                    )
-                ),
-                
-                # Mostrar archivos ya subidos
-                rx.foreach(
-                    TranscriptionState.uploaded_files,
-                    lambda filename: rx.hstack(
-                        rx.icon("check-check", color="green"),
-                        rx.text(f"Subido: {filename}"),
-                        spacing="2"
-                    )
-                ),
-                
-                # Información sobre el proceso
-                rx.cond(
-                    TranscriptionState.transcribing | TranscriptionState.uploading_audio,
-                    rx.card(
-                        rx.vstack(
-                            rx.hstack(
-                                rx.spinner(size="2"),
-                                rx.text("🎙️ Procesando:", weight="bold", size="3", color="blue"),
-                                spacing="2",
-                                align="center"
-                            ),
-                            rx.cond(
-                                TranscriptionState.progress_message != "",
-                                rx.text(TranscriptionState.progress_message, size="2", color="blue", font_style="italic"),
-                                rx.fragment()
-                            ),
-                            spacing="2",
-                            align="start"
-                        ),
-                        bg="blue.50",
-                        border="1px solid",
-                        border_color="blue.200",
-                        width="100%"
-                    ),
-                    rx.card(
-                        rx.vstack(
-                            rx.text("📋 Instrucciones:", weight="bold", size="3"),
-                            rx.text("1. Haz clic en 'Seleccionar archivo MP3'", size="2"),
-                            rx.text("2. Elige un archivo MP3", size="2"),
-                            rx.text("3. Haz clic en 'Transcribir Audio'", size="2"),
-                            rx.text("4. Espera a que termine el proceso", size="2"),
-                            rx.text("5. Se creará automáticamente un notebook", size="2"),
-                            spacing="1",
-                            align="start"
-                        ),
-                        bg="gray.50",
-                        border="1px solid",
-                        border_color="gray.200",
-                        width="100%"
-                    )
-                ),
-                
-                # Botón eliminado - ya no es necesario porque el upload procesa automáticamente
-                
-                rx.button(  
-                    "🎙️ Transcribir Audio",
-                    on_click=TranscriptionState.handle_upload(
-                        rx.upload_files(upload_id="upload_mp3")
-                    ),
-                    loading=TranscriptionState.uploading_audio | TranscriptionState.transcribing,
-                    disabled=TranscriptionState.uploading_audio | TranscriptionState.transcribing,
-                    size="3",
-                    margin_top="1rem",
-                    color_scheme="green"
-                ),
-                
-                spacing="4",
-                align="center",
-                width="100%"
-            ),
-            width="100%"
-        ),
-        
-        # Estado de progreso
+        # --- SECCIÓN DE SUBIDA Y PROCESO ---
+        # ✅ REFACTORIZADO: Esta sección se oculta cuando la transcripción es exitosa
         rx.cond(
-            TranscriptionState.transcribing | TranscriptionState.uploading_audio,
+            ~is_successful,
             rx.card(
                 rx.vstack(
-                    rx.hstack(
-                        rx.spinner(size="2"),
-                        rx.text(TranscriptionState.progress_message, weight="bold"),
-                        spacing="3",
-                        align="center"
+                    rx.heading("Subir archivo de audio", size="5"),
+                    rx.text("Sube un archivo MP3 para transcribirlo.", size="2", color_scheme="gray"),
+
+                    rx.upload(
+                        rx.vstack(
+                            rx.button("📁 Seleccionar archivo"),
+                            rx.text("o arrastra y suelta aquí"),
+                        ),
+                        id="upload_mp3",
+                        border="2px dashed",
+                        padding="2em",
+                        accept={"audio/mpeg": [".mp3"]},
+                        max_files=1,
+                        disabled=is_processing,
+                        multiple=False,
                     ),
-                    spacing="2",
-                    align="center"
+
+                    rx.hstack(
+                        rx.foreach(
+                            rx.selected_files("upload_mp3"),
+                            lambda file: rx.text(f"Archivo: {file}")
+                        )
+                    ),
+                    
+                    rx.button(
+                        "🎙️ Iniciar Transcripción",
+                        on_click=TranscriptionState.handle_transcription_request(
+                            rx.upload_files(upload_id="upload_mp3")
+                        ),
+                        loading=is_processing,
+                        disabled=is_processing | no_file_selected,
+                        size="3",
+                        margin_top="1rem",
+                    ),
+
+                    # ✅ REFACTORIZADO: El indicador de progreso ahora es más claro
+                    rx.cond(
+                        is_processing,
+                        rx.vstack(
+                            rx.divider(),
+                            rx.hstack(
+                                rx.spinner(),
+                                rx.text(TranscriptionState.progress_message),
+                                align="center",
+                            ),
+                            rx.progress(is_indeterminate=True, width="100%"),
+                            width="100%",
+                            padding_top="1rem",
+                        ),
+                    ),
+                    spacing="4",
+                    align="center",
                 ),
                 width="100%",
-                bg="blue.50",
-                border="1px solid",
-                border_color="blue.200"
             ),
-            rx.fragment()
         ),
-        
-        # Mensaje de éxito
+
+        # --- MENSAJE DE ÉXITO ---
         rx.cond(
-            TranscriptionState.current_transcription == "SUCCESS",
+            is_successful,
             rx.card(
                 rx.vstack(
                     rx.hstack(
-                        rx.icon("check", color="green", size=24),
-                        rx.heading("¡Notebook generado exitosamente!", size="5", color="green"),
-                        spacing="2",
-                        align="center"
+                        rx.icon("check", color_scheme="green", size=32),
+                        rx.heading("¡Notebook Generado!", size="5"),
+                        align="center",
                     ),
-                    rx.text(
-                        "Se ha creado automáticamente un notebook con tu transcripción.",
-                        size="3",
-                        color="gray.700"
-                    ),
+                    rx.text("Se creó un notebook con tu transcripción."),
                     rx.hstack(
                         rx.button(
                             "📓 Ver Mis Notebooks",
                             on_click=rx.redirect("/notebooks"),
-                            variant="solid",
-                            color_scheme="green"
                         ),
                         rx.button(
                             "🎙️ Nueva Transcripción",
-                            on_click=TranscriptionState.clear_current_transcription,
+                            on_click=TranscriptionState.reset_upload_state,
                             variant="outline",
-                            color_scheme="blue"
                         ),
-                        spacing="3"
                     ),
                     spacing="4",
                     align="center",
-                    width="100%"
                 ),
                 width="100%",
-                bg="green.50",
-                border="2px solid",
-                border_color="green.300",
-                padding="2rem"
+                style={"border": "2px solid", "border_color": "var(--green-a6)"},
             ),
-            rx.fragment()
         ),
-        
-        # Historial de transcripciones
+
+        # --- HISTORIAL DE TRANSCRIPCIONES ---
         rx.card(
             rx.vstack(
                 rx.hstack(
-                    rx.heading("Transcripciones anteriores", size="5"),
+                    rx.heading("Transcripciones Anteriores", size="5"),
                     rx.spacer(),
                     rx.button(
                         "Actualizar",
-                        on_click=TranscriptionState.load_user_transcriptions_simple,
+                        on_click=TranscriptionState.refresh_transcriptions,
                         variant="ghost",
-                        size="2"
+                        size="2",
                     ),
-                    width="100%",
-                    align="center"
+                    align="center",
                 ),
                 
                 rx.cond(
@@ -219,74 +130,88 @@ def transcription_page() -> rx.Component:
                     rx.vstack(
                         rx.foreach(
                             TranscriptionState.transcriptions,
-                            lambda t: transcription_item(t)
+                            transcription_item,
                         ),
                         spacing="3",
-                        width="100%"
+                        width="100%",
                     ),
-                    rx.text("No hay transcripciones anteriores.", color="gray", text_align="center")
+                    rx.text(
+                        "No hay transcripciones anteriores.",
+                        color_scheme="gray",
+                        padding="2rem 0",
+                    )
                 ),
-                
                 spacing="4",
-                width="100%"
             ),
-            width="100%"
+            width="100%",
         ),
-        
-        # Mensaje de error
+
+        # --- MENSAJE DE ERROR ---
         rx.cond(
-            TranscriptionState.error_message != "",
+            has_error,
             rx.callout.root(
-                rx.callout.icon(rx.icon("triangle-alert")),
+                rx.callout.icon(rx.icon("triangle_alert")),
                 rx.callout.text(TranscriptionState.error_message),
-                color_scheme="red"
+                color_scheme="red",
             ),
-            rx.fragment()
         ),
         
         spacing="6",
         width="100%",
+        max_width="800px",
+        margin="auto",
+        padding="2rem",
         on_mount=[
-            TranscriptionState.load_user_transcriptions_simple,
-            TranscriptionState.reset_upload_state  # Limpiar estado al cargar página
+            TranscriptionState.refresh_transcriptions,
+            TranscriptionState.reset_upload_state,
         ]
     )
     
     return main_layout(content)
 
 
-def transcription_item(transcription: rx.Var) -> rx.Component:
+def transcription_item(trans: TranscriptionType) -> rx.Component:
     """Componente para mostrar una transcripción en el historial."""
+    notebook_exists = trans.notebook_id > 0
     
     return rx.card(
         rx.hstack(
             rx.vstack(
-                rx.text(transcription.filename, weight="bold", size="3"),
-                rx.text(transcription.created_at[:10], size="2", color="gray"),
+                rx.text(trans.filename, weight="bold"),
+                rx.hstack(
+                    rx.text(trans.created_at, size="2", color_scheme="gray"),
+                    rx.text("•", size="2", color_scheme="gray"),
+                    rx.text(f"Duración: {trans.audio_duration}", size="2"),
+                ),
+                rx.text(
+                    trans.transcription_text,
+                    size="2",
+                    color_scheme="gray",
+                    no_of_lines=2,
+                ),
                 align="start",
-                spacing="1"
+                spacing="1",
             ),
             rx.spacer(),
-            rx.hstack(
+            rx.vstack(
                 rx.button(
-                    "📓 Ver Notebook",
-                    on_click=rx.redirect(f"/notebooks/{transcription.notebook_id}"),
+                    "Ver Notebook",
+                    on_click=rx.redirect(f"/notebooks/{trans.notebook_id}"),
                     variant="soft",
                     size="2",
-                    disabled=transcription.notebook_id == 0
+                    disabled=~notebook_exists,
                 ),
                 rx.button(
-                    "🗑️ Eliminar",
-                    on_click=TranscriptionState.delete_transcription(transcription.id),
+                    "Eliminar",
+                    on_click=TranscriptionState.delete_transcription(trans.id),
                     variant="outline",
                     size="2",
-                    color_scheme="red"
+                    color_scheme="red",
                 ),
-                spacing="2"
+                min_width="130px",
+                spacing="2",
             ),
-            width="100%",
-            align="center"
+            align="center",
         ),
         width="100%",
-        variant="ghost"
     )
