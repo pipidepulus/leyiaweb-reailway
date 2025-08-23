@@ -1,9 +1,11 @@
 # asistente_legal_constitucional_con_ia/states/prompts_state.py
 import reflex as rx
+
 from .app_state import AppState
 
 # ID único para el contenedor de scroll de la página de prompts
 PROMPTS_CONTAINER_ID = "prompts-scroll-area"
+
 
 class PromptsState(AppState):
     """Estado para manejar la interactividad de la página de prompts."""

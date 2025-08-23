@@ -2,8 +2,10 @@
 """Página del asistente, que ahora solo muestra el componente de chat."""
 
 import reflex as rx
-from ..components.layout import main_layout
+
 from ..components.chat import chat
+from ..components.layout import main_layout
+
 
 def asistente_page() -> rx.Component:
     """

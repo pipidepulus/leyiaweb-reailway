@@ -1,23 +1,25 @@
 # /home/pipid/legalcolrag/asistente_legal_constitucional_con_ia/states/app_state.py
+from typing import Dict, List
+from urllib.parse import urljoin
+
 import reflex as rx
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
-from typing import Dict, List
 
 # --- Modelos de Datos ---
+
+
 class Prompt(rx.Base):
     title: str
     description: str
     content: str
 
+
 Proyecto = Dict[str, str]
 
 
-
-
 class AppState(rx.State):
-    show_drawer: bool = False # Indica si el drawer está abierto o cerrado celular
+    show_drawer: bool = False  # Indica si el drawer está abierto o cerrado celular
 
     def toggle_drawer(self):
         """Cambia la visibilidad del drawer (menú celular)."""
@@ -44,31 +46,31 @@ class AppState(rx.State):
             url_camara = "https://www.camara.gov.co/secretaria/proyectos-de-ley#menu"
             # ... resto del código de scraping ...
             base_url_camara = "https://www.camara.gov.co"
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-            
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+
             # Usamos requests de forma síncrona, es más simple para este caso de fondo
             response = requests.get(url_camara, timeout=20, headers=headers)
             response.raise_for_status()
 
-            soup = BeautifulSoup(response.content, 'lxml')
-            tabla_proyectos = soup.find('table', class_='table')
+            soup = BeautifulSoup(response.content, "lxml")
+            tabla_proyectos = soup.find("table", class_="table")
             proyectos_list = []
             if tabla_proyectos:
-                tbody = tabla_proyectos.find('tbody')
+                tbody = tabla_proyectos.find("tbody")
                 if tbody:
-                    filas_proyecto = tbody.find_all('tr', class_='tablacomispro', limit=20)
+                    filas_proyecto = tbody.find_all("tr", class_="tablacomispro", limit=20)
                     for fila in filas_proyecto:
-                        num_td = fila.find('td', headers='view-field-numero-de-proyecto-camara-table-column')
+                        num_td = fila.find("td", headers="view-field-numero-de-proyecto-camara-table-column")
                         numero_proyecto = num_td.get_text(strip=True) if num_td else "N/A"
-                        tit_td = fila.find('td', headers='view-title-table-column')
-                        link_tag = tit_td.find('a') if tit_td else None
-                        if link_tag and link_tag.get('href'):
+                        tit_td = fila.find("td", headers="view-title-table-column")
+                        link_tag = tit_td.find("a") if tit_td else None
+                        if link_tag and link_tag.get("href"):
                             titulo_proyecto = link_tag.get_text(strip=True)
-                            enlace_proyecto = urljoin(base_url_camara, link_tag['href'])
+                            enlace_proyecto = urljoin(base_url_camara, link_tag["href"])
                         else:
                             titulo_proyecto = tit_td.get_text(strip=True) if tit_td else "N/A"
                             enlace_proyecto = "N/A"
-                        proyectos_list.append({'Número': numero_proyecto, 'Título': titulo_proyecto, 'Enlace': enlace_proyecto})
+                        proyectos_list.append({"Número": numero_proyecto, "Título": titulo_proyecto, "Enlace": enlace_proyecto})
 
             async with self:
                 self.proyectos = proyectos_list
@@ -78,7 +80,7 @@ class AppState(rx.State):
         finally:
             async with self:
                 self.proyectos_cargando = False
-    
+
     @rx.event
     def cargar_proyectos_si_necesario(self):
         if not self.proyectos_initial_load_done:
@@ -104,15 +106,14 @@ class AppState(rx.State):
             new_feedback_state = self.copied_feedback.copy()
             new_feedback_state[prompt_unique_id] = False
             self.copied_feedback = new_feedback_state
-    
+
     def copy_to_clipboard_and_show_feedback(self, content: str, phase_key: str, index: int):
         prompt_unique_id = f"{phase_key}-{index}"
 
         # Create a new dictionary: set all to False, then current to True.
         # This ensures that only one "Copied!" message is shown at a time.
         # Make sure to iterate over a copy of keys if modifying dict during iteration, or build anew.
-        current_feedback_state = {
-            k: False for k in list(self.copied_feedback.keys())}
+        current_feedback_state = {k: False for k in list(self.copied_feedback.keys())}
         current_feedback_state[prompt_unique_id] = True
         self.copied_feedback = current_feedback_state
 
@@ -122,5 +123,3 @@ class AppState(rx.State):
     def limpiar_prompts_y_redirigir(self):
         # Aquí podrías resetear prompts editados si quisieras
         return rx.redirect("/")
-    
-    

@@ -1,5 +1,6 @@
 import os
 import re
+
 from ..util.text_extraction import extract_text_from_bytes
 
 
@@ -20,10 +21,7 @@ def extract_prompts_to_markdown(docx_path: str, md_path: str):
 
     # Regex para identificar inicios de bloques que serán H2 (prompts individuales para la UI)
     # Incluye "Fase X:" y "X.Y Prompt (...):" o "Prompt X:"
-    block_start_regex = re.compile(
-        r"^\s*(Fase \d+[:\s].*|(\d+\.\d+|\d+)\s*Prompt\s*\(?[^)]*\)?[:\s]|Prompt\s*\d*[:\s])",
-        re.IGNORECASE
-    )
+    block_start_regex = re.compile(r"^\s*(Fase \d+[:\s].*|(\d+\.\d+|\d+)\s*Prompt\s*\(?[^)]*\)?[:\s]|Prompt\s*\d*[:\s])", re.IGNORECASE)
 
     intro_lines = []
     current_block_content = []

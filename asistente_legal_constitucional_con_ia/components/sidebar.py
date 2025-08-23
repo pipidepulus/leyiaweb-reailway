@@ -1,15 +1,20 @@
 """Barra de navegación principal que incluye un panel contextual inteligente."""
+
 import reflex as rx
-from .asistente_sidebar import asistente_sidebar
+
 from ..states.app_state import AppState
 from ..states.chat_state import ChatState
+from .asistente_sidebar import asistente_sidebar
+
 
 class SidebarState(rx.State):
     """Estado para controlar la visibilidad de los componentes de la barra lateral."""
+
     @rx.var
     def is_on_asistente_page(self) -> bool:
         """Comprueba si la ruta actual es la página del asistente."""
         return self.router.page.path == "/asistente"
+
 
 def sidebar(is_in_drawer: bool = False) -> rx.Component:
     """La barra de navegación principal de la aplicación."""
@@ -23,21 +28,21 @@ def sidebar(is_in_drawer: bool = False) -> rx.Component:
                 width="100%",
             ),
             rx.divider(),
-            rx.link("Nuevo Análisis", href="/", style={"width": "100%", "color":"blue", "font-weight": "bold"},
-                     on_click=[handler for handler in [link_click_handler, ChatState.cleanup_session_files] if handler is not None]
+            rx.link(
+                "Nuevo Análisis",
+                href="/",
+                style={"width": "100%", "color": "blue", "font-weight": "bold"},
+                on_click=[handler for handler in [link_click_handler, ChatState.cleanup_session_files] if handler is not None],
             ),
             rx.vstack(
                 # Enlaces principales - ahora disponibles sin autenticación
-                rx.link("🤖 Asistente Constitucional", href="/asistente", width="100%", style={"color":"blue", "font-weight": "bold"}, on_click=link_click_handler),
-                rx.link("📋 Explorar Proyectos de Ley", href="/proyectos", width="100%", style={"color":"blue", "font-weight": "bold"}, on_click=link_click_handler),
-                rx.link("📚 Biblioteca de Prompts", href="/prompts", width="100%", style={"color":"blue", "font-weight": "bold"}, on_click=link_click_handler),
-                
+                rx.link("🤖 Asistente Constitucional", href="/asistente", width="100%", style={"color": "blue", "font-weight": "bold"}, on_click=link_click_handler),
+                rx.link("📋 Explorar Proyectos de Ley", href="/proyectos", width="100%", style={"color": "blue", "font-weight": "bold"}, on_click=link_click_handler),
+                rx.link("📚 Biblioteca de Prompts", href="/prompts", width="100%", style={"color": "blue", "font-weight": "bold"}, on_click=link_click_handler),
                 rx.divider(margin_y="1rem"),
-                
                 rx.text("Herramientas Avanzadas", size="2", weight="bold", color="gray"),
-                rx.link("📝 Mis Notebooks", href="/notebooks", width="100%", style={"color":"green", "font-weight": "bold"}, on_click=link_click_handler),
-                rx.link("🎤 Transcripción de Audio", href="/transcription", width="100%", style={"color":"green", "font-weight": "bold"}, on_click=link_click_handler),
-                
+                rx.link("📝 Mis Notebooks", href="/notebooks", width="100%", style={"color": "green", "font-weight": "bold"}, on_click=link_click_handler),
+                rx.link("🎤 Transcripción de Audio", href="/transcription", width="100%", style={"color": "green", "font-weight": "bold"}, on_click=link_click_handler),
                 spacing="5",
                 width="100%",
                 align_items="start",
@@ -46,19 +51,16 @@ def sidebar(is_in_drawer: bool = False) -> rx.Component:
             width="100%",
             align_items="start",
         ),
-        
         # --- PANEL CONTEXTUAL ---
         rx.cond(
             SidebarState.is_on_asistente_page,
             asistente_sidebar(),
             rx.fragment(),
         ),
-
         rx.spacer(),
-
         # --- ESTILOS DEL CONTENEDOR PRINCIPAL ---
         spacing="5",
         height="100%",
         width="100%",
-        align_items="stretch"
+        align_items="stretch",
     )

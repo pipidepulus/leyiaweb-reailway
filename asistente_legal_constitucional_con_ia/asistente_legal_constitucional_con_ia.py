@@ -4,29 +4,24 @@ Archivo principal de la aplicación.
 """
 import os
 import reflex as rx
+import reflex_clerk_api as clerk
 from dotenv import load_dotenv
-from sqlmodel import create_engine, SQLModel
+
 from asistente_legal_constitucional_con_ia.states.chat_state import ChatState
-from asistente_legal_constitucional_con_ia.models.database import Notebook, AudioTranscription
+
+from .components.layout import main_layout
+from .pages.asistente_page import asistente_page
+from .pages.notebooks_page import notebook_viewer_page, notebooks_page
+from .pages.prompts_page import prompts_page
+from .pages.proyectos_page import ProyectosState, proyectos_page
+from .pages.transcription_page import transcription_page
+
+# from asistente_legal_constitucional_con_ia.models.database import Notebook, AudioTranscription (Bajo OJO)
 
 # --- Carga de variables de entorno ---
 load_dotenv()
 
-# --- Configuración de la base de datos ---
-#DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///legal_assistant.db")
-#engine = create_engine(DATABASE_URL, echo=False)
-
-#def create_tables():
-#    """Crea las tablas de la base de datos."""
-#    SQLModel.metadata.create_all(engine)
-
 # ### CAMBIO 1: Importa tus páginas ###
-from .pages.prompts_page import prompts_page
-from .pages.proyectos_page import proyectos_page, ProyectosState
-from .pages.asistente_page import asistente_page
-from .pages.notebooks_page import notebooks_page, notebook_viewer_page
-from .pages.transcription_page import transcription_page
-from .components.layout import main_layout
 
 # 1. Primero, crea la instancia de la aplicación Reflex.
 app = rx.App(
@@ -35,20 +30,34 @@ app = rx.App(
         has_background=True,
         radius="large",
         accent_color="blue",
-
-           ),    
+    ),
     stylesheets=[
         "/global.css",  # La ruta es relativa a assets y debe iniciar con /
     ],
 )
 
+# ✅ AÑADIR: Función para crear layout SIN sidebar (usuarios no autenticados)
 
-# --- Página Principal (Index) ---
-# La página de inicio permanece pública pero informa sobre la necesidad de autenticación
+
+def public_layout(content: rx.Component) -> rx.Component:
+    """Layout público sin sidebar para usuarios no autenticados."""
+    return rx.vstack(
+        rx.box(content, flex="1", width="100%", padding="2rem", overflow_y="auto"),
+        width="100%",
+        height="100vh",
+        spacing="0",
+    )
+
+
+# ✅ MODIFICAR: Página principal con Clerk Provider
+
+
 @rx.page(route="/", title="Inicio")
 def index() -> rx.Component:
-    """La página de inicio, envuelta en el layout principal."""
-    content = rx.center(
+    """Página principal que maneja autenticación con Clerk."""
+
+    # Contenido para usuarios NO autenticados (actual)
+    unauthenticated_content = rx.center(
         rx.vstack(
             rx.image(
                 src="/balanza.png",
@@ -75,18 +84,11 @@ def index() -> rx.Component:
                 margin_bottom="0.8rem",
                 text_align="center",
             ),
-            
-            # Información sobre autenticación requerida
+            # ✅ MODIFICAR: Card de autenticación con botones de Clerk
             rx.card(
                 rx.vstack(
                     rx.heading("🔐 Acceso Protegido", size="5", color="orange", text_align="center"),
-                    rx.text(
-                        "Para proteger los recursos de IA y personalizar tu experiencia, "
-                        "todas las funcionalidades requieren autenticación.",
-                        text_align="center",
-                        margin_bottom="1rem"
-                    ),
-                    
+                    rx.text("Para proteger los recursos de IA y personalizar tu experiencia, " "todas las funcionalidades requieren autenticación.", text_align="center", margin_bottom="1rem"),
                     rx.vstack(
                         rx.text("🌟 Funcionalidades Disponibles:", weight="bold", color="blue"),
                         rx.text("• 🤖 Asistente Legal Inteligente", size="2"),
@@ -96,64 +98,145 @@ def index() -> rx.Component:
                         rx.text("• 🎤 Transcripción de Audio con Whisper", size="2"),
                         spacing="2",
                         align="start",
-                        margin_bottom="1.5rem"
+                        margin_bottom="1.5rem",
                     ),
-                    
+                    # ✅ CAMBIO: Reemplazar botón normal con botones de Clerk
                     rx.hstack(
-                        rx.link(
-                            rx.button(
-                                "� Comenzar",
-                                size="4",
-                                color_scheme="blue"
-                            ),
-                            href="/asistente"
-                        ),
+                        clerk.sign_in_button(rx.button("💎 Comenzar", size="4", color_scheme="blue")),
+                        clerk.sign_up_button(rx.button("Crear Cuenta", size="4", variant="outline")),
                         spacing="4",
-                        justify="center"
+                        justify="center",
                     ),
-                    
                     spacing="3",
-                    align="center"
+                    align="center",
                 ),
                 max_width="600px",
                 padding="2rem",
-                margin="1rem"
+                margin="1rem",
             ),
-            
-            rx.text(
-                "💡 Crea una cuenta gratuita para acceder a todas las herramientas.",
-                size="3",
-                color="gray",
-                text_align="center",
-                font_style="italic"
-            ),
-            
+            rx.text("💡 Crea una cuenta gratuita para acceder a todas las herramientas.", size="3", color="gray", text_align="center", font_style="italic"),
             align="center",
             spacing="3",
             on_mount=ChatState.limpiar_chat,
         ),
         height="80vh",
     )
-    
-    return main_layout(content)
 
-# --- Añadimos todas las páginas a la aplicación ---
+    # Contenido para usuarios autenticados (con sidebar)
+    authenticated_content = rx.flex(
+        rx.image(
+            src="/balanza.png",
+            width="120px",
+            height="120px",
+            margin_bottom="1.5rem",
+            object_fit="contain",
+            border_radius="8px",
+        ),
+        rx.heading("¡Bienvenido!", size="7", color="blue", text_align="center", margin_bottom="1rem"),
+        rx.text("Selecciona una herramienta del menú lateral para comenzar.", size="4", text_align="center", color="gray", margin_bottom="2rem"),
+        rx.hstack(
+            rx.link(rx.button("🤖 Ir al Asistente", color_scheme="blue", size="3"), href="/asistente"),
+            rx.link(rx.button("📝 Mis Notebooks", variant="outline", size="3"), href="/notebooks"),
+            spacing="4",
+            justify="center",
+        ),
+        direction="column",
+        align="center",
+        justify="center",
+        spacing="4",
+        width="100%",
+        height="100%",
+        max_width="600px",
+        margin_x="auto",
+    )
 
-# Página pública de inicio (landing page)
-# Solo la página de inicio permanece pública para mostrar información de la app
+    # ✅ CAMBIO: Asegurar que SIEMPRE uses use_container=False
+    return clerk.clerk_provider(
+        clerk.clerk_loading(
+            # Pantalla de carga
+            rx.center(rx.vstack(rx.spinner(size="3", color="blue.500"), rx.text("Cargando...", size="3", color="gray.600"), spacing="4", align="center"), min_height="100vh")
+        ),
+        clerk.clerk_loaded(
+            clerk.signed_in(
+                # Usuario autenticado: usar layout sin container
+                main_layout(authenticated_content, use_container=False)
+            ),
+            clerk.signed_out(
+                # Usuario NO autenticado: mostrar landing sin sidebar
+                public_layout(unauthenticated_content)
+            ),
+        ),
+        publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
+        secret_key=os.environ.get("CLERK_SECRET_KEY"),
+        register_user_state=True,
+    )
 
-# Páginas protegidas por autenticación - TODAS requieren login
-app.add_page(asistente_page, route="/asistente", title="Asistente Constitucional")
-app.add_page(
-    proyectos_page, 
-    route="/proyectos", 
-    title="Proyectos de Ley", 
-    on_load=ProyectosState.scrape_proyectos
-)
-app.add_page(prompts_page, route="/prompts", title="Biblioteca de Prompts")
-app.add_page(notebooks_page, route="/notebooks", title="Mis Notebooks")
-app.add_page(notebook_viewer_page, route="/notebooks/[notebook_id]", title="Ver Notebook")
-app.add_page(transcription_page, route="/transcription", title="Transcripción de Audio")
 
-# Inicializar la base de datos al arrancar
-#create_tables()
+def create_protected_page(page_func, title: str):
+    """Crea una página protegida sin decorador @rx.page."""
+
+    def protected_page_component() -> rx.Component:
+        return clerk.clerk_provider(
+            clerk.clerk_loading(
+                rx.center(
+                    rx.vstack(
+                        rx.image(
+                            src="/balanza.png",
+                            width="50px",
+                            height="50px",
+                            margin_bottom="1rem",
+                            object_fit="contain",
+                            margin_x="auto",
+                        ),
+                        rx.spinner(size="3"),
+                        rx.text("Cargando...", size="3", color="gray.600"),
+                        spacing="4",
+                        align="center",
+                    ),
+                    min_height="100vh",
+                )
+            ),
+            clerk.clerk_loaded(
+                # Las páginas ya aplican main_layout internamente; no envolver de nuevo
+                clerk.signed_in(page_func()),
+                clerk.signed_out(
+                    rx.center(
+                        rx.vstack(
+                            rx.image(
+                                src="/balanza.png",
+                                width="80px",
+                                height="80px",
+                                margin_bottom="1rem",
+                                object_fit="contain",
+                                margin_x="auto",
+                            ),
+                            rx.heading("Acceso Restringido", size="6"),
+                            rx.text("Debes iniciar sesión para acceder a esta página."),
+                            clerk.sign_in_button(rx.button("Iniciar Sesión", color_scheme="blue")),
+                            spacing="4",
+                            align="center",
+                        ),
+                        min_height="100vh",
+                    )
+                ),
+            ),
+            publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
+            secret_key=os.environ.get("CLERK_SECRET_KEY"),
+            register_user_state=True,
+        )
+
+    return protected_page_component
+
+
+# ✅ MODIFICAR: Aplicar protección a todas las páginas except index
+app.add_page(create_protected_page(asistente_page, "Asistente Constitucional"), route="/asistente", title="Asistente Constitucional")
+
+app.add_page(create_protected_page(proyectos_page, "Proyectos de Ley"), route="/proyectos", title="Proyectos de Ley", on_load=ProyectosState.scrape_proyectos)
+
+app.add_page(create_protected_page(prompts_page, "Biblioteca de Prompts"), route="/prompts", title="Biblioteca de Prompts")
+
+app.add_page(create_protected_page(notebooks_page, "Mis Notebooks"), route="/notebooks", title="Mis Notebooks")
+
+app.add_page(create_protected_page(lambda: notebook_viewer_page(), "Ver Notebook"), route="/notebooks/[notebook_id]", title="Ver Notebook")
+
+app.add_page(create_protected_page(transcription_page, "Transcripción de Audio"), route="/transcription", title="Transcripción de Audio")

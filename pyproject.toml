@@ -1,0 +1,36 @@
+[tool.black]
+line-length = 200
+target-version = ["py312"]
+extend-exclude = '''
+(
+  ^venv/
+ |^\.venv/
+ |^\.reflex/
+ |^build/
+ |^dist/
+ |^__pycache__/
+ |^alembic/
+)
+'''
+
+[tool.ruff]
+line-length = 200
+target-version = "py312"
+exclude = [
+  "venv",
+  ".venv",
+  ".reflex",
+  "build",
+  "dist",
+  "__pycache__",
+  "alembic"
+]
+
+[tool.ruff.lint]
+# Evita E501 (línea larga); deja Black manejar el ancho de línea.
+select = ["E", "F", "I"]
+ignore = ["E203", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["asistente_legal_constitucional_con_ia"]
+combine-as-imports = true

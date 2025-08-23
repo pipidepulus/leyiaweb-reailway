@@ -4,7 +4,7 @@ import logging
 import os
 import tempfile
 import time
-from typing import TypedDict, List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 import pytesseract
 import reflex as rx
@@ -12,11 +12,18 @@ from dotenv import load_dotenv
 from openai import APIError, OpenAI
 from pdf2image import convert_from_bytes
 
+from asistente_legal_constitucional_con_ia.services.token_counter import (
+    count_text_tokens,
+)
 from asistente_legal_constitucional_con_ia.util.scraper import (
     scrape_proyectos_recientes_camara,
 )
-from asistente_legal_constitucional_con_ia.util.text_extraction import extract_text_from_bytes
-from asistente_legal_constitucional_con_ia.util.tools import buscar_documento_legal
+from asistente_legal_constitucional_con_ia.util.text_extraction import (
+    extract_text_from_bytes,
+)
+from asistente_legal_constitucional_con_ia.util.tools import (
+    buscar_documento_legal,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("asistente_legal")
@@ -28,23 +35,32 @@ TOOLS_DEFINITION = [
         "type": "function",
         "function": {
             "name": "buscar_documento_legal",
-            "description": "Herramienta de búsqueda avanzada para encontrar documentos legales colombianos (leyes, sentencias, gacetas) aplicando la estrategia más adecuada para cada tipo.",
+            "description": ("Herramienta de búsqueda avanzada para encontrar documentos legales colombianos " "(leyes, sentencias, gacetas) aplicando la estrategia más adecuada para cada tipo."),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "La consulta de búsqueda específica. Para Gacetas, usar solo el número y año, ej: '758 de 2017'. Para Sentencias, el identificador completo, ej: 'Sentencia C-123 de 2023'. Para Leyes, el número y año, ej: 'Ley 1437 de 2011'."
+                        "description": (
+                            "La consulta de búsqueda específica. Para Gacetas, usar solo el número y año, "
+                            "ej: '758 de 2017'. Para Sentencias, el identificador completo, "
+                            "ej: 'Sentencia C-123 de 2023'. "
+                            "Para Leyes, el número y año, ej: 'Ley 1437 de 2011'."
+                        ),
                     },
                     "tipo_documento": {
                         "type": "string",
-                        "description": "El tipo de documento legal a buscar. Debe ser uno de: 'gaceta', 'sentencia', 'ley'.",
-                        "enum": ["gaceta", "sentencia", "ley"]
+                        "description": ("El tipo de documento legal a buscar. " "Debe ser uno de: 'gaceta', 'sentencia', 'ley'."),
+                        "enum": ["gaceta", "sentencia", "ley"],
                     },
                     "sitio_preferido": {
                         "type": "string",
-                        "description": "Opcional. Usar para priorizar dominios de alta autoridad. Ej: 'corteconstitucional.gov.co' para sentencias o 'suin-juriscol.gov.co' para leyes. NO usar para gacetas."
-                    }
+                        "description": (
+                            "Opcional. Usar para priorizar dominios de alta autoridad. "
+                            "Ej: 'corteconstitucional.gov.co' para sentencias o "
+                            "'suin-juriscol.gov.co' para leyes. NO usar para gacetas."
+                        ),
+                    },
                 },
                 "required": ["query", "tipo_documento"],
             },
@@ -94,13 +110,24 @@ class ChatState(rx.State):
     file_context: str = ""
     show_notebook_dialog: bool = False
     notebook_title: str = ""
-    current_run_id: Optional[str] = None  # nuevo: para poder cancelar el run en curso
+    # nuevo: para poder cancelar el run en curso
+    current_run_id: Optional[str] = None
 
     # límites para estabilidad
     max_chat_messages: int = 80  # conservar últimas 80 entradas en UI
     stream_min_chars: int = 120  # umbral de chars para actualizar streaming_response
     stream_min_interval_s: float = 0.15  # tiempo mínimo entre updates
     ocr_max_pages: int = 100  # limitar OCR para PDFs gigantes
+
+    model_name: str = ""
+    last_prompt_tokens: int = 0
+    last_completion_tokens: int = 0
+    last_total_tokens: int = 0
+    total_prompt_tokens: int = 0
+    total_completion_tokens: int = 0
+    total_tokens: int = 0
+    cost_usd: float = 0.0
+    approx_output_tokens: int = 0
 
     @staticmethod
     def get_client(api_key: str):
@@ -182,9 +209,7 @@ class ChatState(rx.State):
                 ocr_text_parts.append(text)
 
             if total_pages > self.ocr_max_pages:
-                ocr_text_parts.append(
-                    f"\n[Nota: OCR truncado a {self.ocr_max_pages} páginas de {total_pages} por límite de rendimiento]"
-                )
+                ocr_text_parts.append(f"\n[Nota: OCR truncado a {self.ocr_max_pages} páginas de {total_pages} por límite de rendimiento]")
 
         except Exception as e:
             logger.error(f"Error durante el OCR: {e}")
@@ -232,8 +257,7 @@ class ChatState(rx.State):
                 upload_data = await file.read()
                 extracted_text = extract_text_from_bytes(upload_data, file.name, skip_ocr=True)
 
-                if (file.name.lower().endswith(".pdf")
-                        and (not extracted_text or len(extracted_text.strip()) < 100)):
+                if file.name.lower().endswith(".pdf") and (not extracted_text or len(extracted_text.strip()) < 100):
 
                     self.uploading = False
                     yield
@@ -267,16 +291,10 @@ class ChatState(rx.State):
                     tmp_file.write(extracted_text)
 
                 try:
-                    response = await asyncio.to_thread(
-                        self._upload_file_to_openai, client, tmp_path
-                    )
+                    response = await asyncio.to_thread(self._upload_file_to_openai, client, tmp_path)
 
-                    self.file_info_list.append(
-                        {"file_id": response.id, "filename": file.name, "uploaded_at": time.time()}
-                    )
-                    self.session_files.append(
-                        {"file_id": response.id, "filename": file.name, "uploaded_at": time.time()}
-                    )
+                    self.file_info_list.append({"file_id": response.id, "filename": file.name, "uploaded_at": time.time()})
+                    self.session_files.append({"file_id": response.id, "filename": file.name, "uploaded_at": time.time()})
 
                     logger.info(f"'{file.name}' subido con id {response.id}.")
                     self.upload_error = ""
@@ -375,6 +393,104 @@ class ChatState(rx.State):
         except Exception:
             pass
 
+    # === NUEVO: helpers de modelo, costo y usage ===
+
+    async def _ensure_model_name(self, client: OpenAI):
+        """Obtiene y cachea el modelo del Assistant para costos/estimaciones."""
+        # Si ya hay modelo cacheado, no hagas nada
+        if self.model_name:
+            return
+
+        # Si no hay cliente o assistant_id, usa fallback
+        if not client or not self.assistant_id:
+            async with self:
+                if not self.model_name:
+                    self.model_name = "gpt-4o-mini"
+            return
+
+        # Recuperar el modelo fuera del context manager
+        try:
+            assistant = await asyncio.to_thread(client.beta.assistants.retrieve, self.assistant_id)
+            model = getattr(assistant, "model", "") or "gpt-4o-mini"
+        except Exception:
+            model = "gpt-4o-mini"
+
+        # Asignar al estado dentro del context manager
+        async with self:
+            if not self.model_name:
+                self.model_name = model
+
+    def _estimate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
+        """USD aproximados por 1M tokens (ajusta a tus precios)."""
+        pricing = {
+            "gpt-4o": (5.00, 15.00),
+            "gpt-4o-mini": (0.150, 0.600),
+            "gpt-4.1": (5.00, 15.00),
+            "gpt-4.1-mini": (0.300, 1.125),
+            "gpt-4-turbo": (10.00, 30.00),
+            "gpt-3.5-turbo": (0.50, 1.50),
+        }
+        in_m, out_m = pricing.get(model, pricing["gpt-4o-mini"])
+        return (input_tokens * in_m + output_tokens * out_m) / 1_000_000.0
+
+    def _commit_usage(self, input_tokens: int, output_tokens: int):
+        self.last_prompt_tokens = int(input_tokens or 0)
+        self.last_completion_tokens = int(output_tokens or 0)
+        self.last_total_tokens = self.last_prompt_tokens + self.last_completion_tokens
+        self.total_prompt_tokens += self.last_prompt_tokens
+        self.total_completion_tokens += self.last_completion_tokens
+        self.total_tokens += self.last_total_tokens
+        self.cost_usd += self._estimate_cost(self.model_name or "gpt-4o-mini", self.last_prompt_tokens, self.last_completion_tokens)
+
+    def _apply_usage_object(self, usage: Any):
+        """Acepta usage dict/obj y consolida. Soporta input/output y prompt/completion."""
+        if not usage:
+            return
+        try:
+            # 1) intentar input/output (Assistants v2)
+            input_tokens = getattr(usage, "input_tokens", None)
+            output_tokens = getattr(usage, "output_tokens", None)
+
+            # 2) fallback a dict
+            if isinstance(usage, dict):
+                if input_tokens is None:
+                    input_tokens = usage.get("input_tokens")
+                if output_tokens is None:
+                    output_tokens = usage.get("output_tokens")
+
+            # 3) fallback a prompt/completion (algunos despliegues)
+            if input_tokens is None:
+                input_tokens = getattr(usage, "prompt_tokens", None)
+            if output_tokens is None:
+                output_tokens = getattr(usage, "completion_tokens", None)
+
+            if isinstance(usage, dict):
+                if input_tokens is None:
+                    input_tokens = usage.get("prompt_tokens")
+                if output_tokens is None:
+                    output_tokens = usage.get("completion_tokens")
+
+            input_tokens = int(input_tokens or 0)
+            output_tokens = int(output_tokens or 0)
+
+            # Registrar en logs para verificar
+            logger.info(f"USAGE aplicado - input: {input_tokens}, output: {output_tokens}, modelo: {self.model_name}")
+
+            self._commit_usage(input_tokens, output_tokens)
+        except Exception as e:
+            logger.warning(f"No se pudo aplicar usage: {e}")
+
+    @rx.event
+    def reset_token_counters(self):
+        self.last_prompt_tokens = 0
+        self.last_completion_tokens = 0
+        self.last_total_tokens = 0
+        self.total_prompt_tokens = 0
+        self.total_completion_tokens = 0
+        self.total_tokens = 0
+        self.cost_usd = 0.0
+        self.approx_output_tokens = 0
+
     @rx.event
     def send_message(self, form_data: dict):
         user_prompt = self.current_question.strip()
@@ -422,18 +538,17 @@ class ChatState(rx.State):
 
     @rx.event(background=True)
     async def generate_response_streaming(self):
-        logger.info(
-            f"DEBUG: Estado actual - session_files: {len(self.session_files)}, file_info_list: {len(self.file_info_list)}"
-        )
+        logger.info((f"DEBUG: Estado actual - session_files: {len(self.session_files)}, " f"file_info_list: {len(self.file_info_list)}"))
         for fi in self.session_files:
             logger.info(f"DEBUG: Archivo en sesión: {fi['filename']} -> {fi['file_id']}")
         logger.info(f"generate_response_streaming: INICIO. thread_id={self.thread_id}")
         client = self.get_client(self.openai_api_key)
 
         try:
-            last_user_message = next(
-                (m["content"] for m in reversed(self.messages) if m["role"] == "user"), None
-            )
+
+            await self._ensure_model_name(client)
+
+            last_user_message = next((m["content"] for m in reversed(self.messages) if m["role"] == "user"), None)
             if not last_user_message:
                 raise ValueError("No se encontró el último mensaje del usuario.")
 
@@ -451,23 +566,18 @@ class ChatState(rx.State):
 
             # Inspección opcional de mensajes previos del thread (debug)
             try:
-                existing_messages = await asyncio.to_thread(
-                    client.beta.threads.messages.list, thread_id=self.thread_id, limit=3
-                )
+                existing_messages = await asyncio.to_thread(client.beta.threads.messages.list, thread_id=self.thread_id, limit=3)
                 logger.debug(f"DEBUG THREAD - mensajes existentes: {len(existing_messages.data)}")
             except Exception as e:
                 logger.debug(f"Error verificando mensajes del thread: {e}")
 
-            attachments = [
-                {"file_id": fi["file_id"], "tools": [{"type": "file_search"}]}
-                for fi in current_files
-            ]
+            attachments = [{"file_id": fi["file_id"], "tools": [{"type": "file_search"}]} for fi in current_files]
 
             logger.info(f"DEBUG ARCHIVO - session_files: {len(self.session_files)}")
             logger.info(f"DEBUG ARCHIVO - current_files: {len(current_files)}")
             logger.info(f"DEBUG ARCHIVO - attachments: {len(attachments)}")
             files_debug = [f"{fi['filename']} ({fi['file_id']})" for fi in current_files]
-            logger.info(f"DEBUG: Archivos que se van a usar: {files_debug}" if files_debug else "DEBUG: No se enviarán archivos")
+            logger.info((f"DEBUG: Archivos que se van a usar: {files_debug}" if files_debug else "DEBUG: No se enviarán archivos"))
 
             if current_files:
                 file_names = [fi["filename"] for fi in current_files]
@@ -517,6 +627,7 @@ class ChatState(rx.State):
             accumulated_content = ""
             last_update_time = time.time()
             last_scroll_time = 0.0
+            usage_applied = False
 
             while True:
                 should_break_outer_loop = False
@@ -539,11 +650,7 @@ class ChatState(rx.State):
                             if text_chunk:
                                 accumulated_content += text_chunk
                                 current_time = time.time()
-                                should_update = (
-                                    len(accumulated_content) >= self.stream_min_chars
-                                    or "\n" in text_chunk
-                                    or (current_time - last_update_time) >= self.stream_min_interval_s
-                                )
+                                should_update = len(accumulated_content) >= self.stream_min_chars or "\n" in text_chunk or (current_time - last_update_time) >= self.stream_min_interval_s
 
                                 if should_update:
                                     async with self:
@@ -552,6 +659,7 @@ class ChatState(rx.State):
                                             first_chunk_processed = True
                                         accumulated_response += accumulated_content
                                         self.streaming_response = accumulated_response
+                                        self.approx_output_tokens = count_text_tokens(self.streaming_response, self.model_name or "gpt-4o-mini")
                                     yield
 
                                     # scroll con moderación
@@ -570,9 +678,7 @@ class ChatState(rx.State):
                         tool_outputs = []
                         # feedback ligero para UI
                         try:
-                            first_args = json.loads(
-                                event.data.required_action.submit_tool_outputs.tool_calls[0].function.arguments
-                            )
+                            first_args = json.loads(event.data.required_action.submit_tool_outputs.tool_calls[0].function.arguments)
                             first_query = first_args.get("query", "...")
                             async with self:
                                 self.streaming_response = f"Buscando: '{first_query}'..."
@@ -608,7 +714,17 @@ class ChatState(rx.State):
                             break
 
                     elif event.event in ["thread.run.completed", "thread.run.failed", "error"]:
-                        if event.event != "thread.run.completed":
+                        if event.event == "thread.run.completed":
+                            # NUEVO: usage directo desde el evento
+                            try:
+                                usage = getattr(getattr(event, "data", None), "usage", None)
+                                if usage:
+                                    async with self:
+                                        self._apply_usage_object(usage)
+                                    usage_applied = True
+                            except Exception:
+                                pass
+                        else:
                             logger.error(f"Stream: Run fallido. Evento: {event.event}")
                             async with self:
                                 self.streaming_response = "Repite la solicitud por favor."
@@ -623,7 +739,19 @@ class ChatState(rx.State):
                 async with self:
                     accumulated_response += accumulated_content
                     self.streaming_response = accumulated_response
+                    self.approx_output_tokens = count_text_tokens(self.streaming_response, self.model_name or "gpt-4o-mini")
                 yield
+
+            # NUEVO: recuperar usage si no vino en el stream
+            if not usage_applied and self.thread_id and self.current_run_id:
+                try:
+                    run_obj = await asyncio.to_thread(client.beta.threads.runs.retrieve, self.thread_id, self.current_run_id)
+                    usage = getattr(run_obj, "usage", None)
+                    if usage:
+                        async with self:
+                            self._apply_usage_object(usage)
+                except Exception as e:
+                    logger.debug(f"No se pudo recuperar usage del run: {e}")
 
             # Consolidar streaming_response dentro del mensaje
             async with self:
@@ -634,6 +762,7 @@ class ChatState(rx.State):
                 self.thinking_seconds = 0
                 self.focus_chat_input = True
                 self.current_run_id = None
+                self.approx_output_tokens = 0
             yield
             yield self.scroll_to_bottom()
             yield self.focus_input()
@@ -666,9 +795,7 @@ class ChatState(rx.State):
         if not client:
             return
         try:
-            await asyncio.to_thread(
-                client.beta.threads.runs.cancel, self.thread_id, self.current_run_id
-            )
+            await asyncio.to_thread(client.beta.threads.runs.cancel, self.thread_id, self.current_run_id)
             logger.info(f"Run {self.current_run_id} cancelado.")
         except Exception as e:
             logger.warning(f"No se pudo cancelar run {self.current_run_id}: {e}")
@@ -685,9 +812,7 @@ class ChatState(rx.State):
         self.messages = [
             {
                 "role": "assistant",
-                "content": "¡Hola! Soy LeyIA, tu Asistente Legal. "
-                           "Puedes hacerme una pregunta o subir un "
-                           "documento para analizarlo.",
+                "content": "¡Hola! Soy LeyIA, tu Asistente Legal. " "Puedes hacerme una pregunta o subir un " "documento para analizarlo.",
             }
         ]
         self.thread_id = None
@@ -727,8 +852,9 @@ class ChatState(rx.State):
             notebook_content = self._convert_chat_to_notebook(self.messages, title_to_use)
 
             with rx.session() as session:
-                from ..models.database import Notebook
                 import json as _json
+
+                from ..models.database import Notebook
 
                 new_notebook = Notebook(
                     title=title_to_use,
@@ -748,7 +874,7 @@ class ChatState(rx.State):
 
     @rx.event
     async def suggest_notebook_creation(self):
-        if (len(self.messages) >= 4 and not self.processing):
+        if len(self.messages) >= 4 and not self.processing:
             return rx.toast.info("💡 ¿Quieres guardar esta conversación como notebook?", duration=5000)
 
     @rx.event
@@ -764,9 +890,7 @@ class ChatState(rx.State):
             self.messages = [
                 {
                     "role": "assistant",
-                    "content": "¡Hola! Soy LeyIA, tu Asistente Legal. "
-                               "Puedes hacerme una pregunta o subir un "
-                               "documento para analizarlo.",
+                    "content": "¡Hola! Soy LeyIA, tu Asistente Legal. " "Puedes hacerme una pregunta o subir un " "documento para analizarlo.",
                 }
             ]
         if self.has_api_keys:
@@ -778,9 +902,7 @@ class ChatState(rx.State):
             self.messages = [
                 {
                     "role": "assistant",
-                    "content": "¡Hola! Soy LeyIA, tu Asistente Legal. "
-                               "Puedes hacerme una pregunta o subir un "
-                               "documento para analizarlo.",
+                    "content": "¡Hola! Soy LeyIA, tu Asistente Legal. " "Puedes hacerme una pregunta o subir un " "documento para analizarlo.",
                 }
             ]
 
@@ -862,26 +984,28 @@ class ChatState(rx.State):
         from datetime import datetime
 
         cells = []
-        cells.append({
-            "cell_type": "markdown",
-            "source": [
-                f"# {title}\n\n",
-                f"*Notebook generado automáticamente el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}*\n\n",
-                "---\n\n"
-            ],
-        })
+        cells.append(
+            {
+                "cell_type": "markdown",
+                "source": [f"# {title}\n\n", f"*Notebook generado automáticamente el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}*\n\n", "---\n\n"],
+            }
+        )
 
         for i, message in enumerate(chat_messages):
             if message["role"] == "user":
-                cells.append({
-                    "cell_type": "markdown",
-                    "source": [f"## 🙋 Consulta {(i // 2) + 1}\n\n", f"{message['content']}\n\n"],
-                })
+                cells.append(
+                    {
+                        "cell_type": "markdown",
+                        "source": [f"## 🙋 Consulta {(i // 2) + 1}\n\n", f"{message['content']}\n\n"],
+                    }
+                )
             elif message["role"] == "assistant":
-                cells.append({
-                    "cell_type": "markdown",
-                    "source": ["### 🤖 Respuesta del Asistente\n\n", f"{message['content']}\n\n", "---\n\n"],
-                })
+                cells.append(
+                    {
+                        "cell_type": "markdown",
+                        "source": ["### 🤖 Respuesta del Asistente\n\n", f"{message['content']}\n\n", "---\n\n"],
+                    }
+                )
 
         return {
             "cells": cells,

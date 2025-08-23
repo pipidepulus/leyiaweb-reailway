@@ -30,8 +30,7 @@ def file_uploader() -> rx.Component:
             weight="medium",
         ),
         rx.text(
-            f"{files_used_count}/{MAX_FILES} usados, "
-            f"{files_available_count} disponibles",
+            f"{files_used_count}/{MAX_FILES} usados, " f"{files_available_count} disponibles",
             size="2",
             color=INFO_TEXT_COLOR,
             weight="medium",
@@ -57,8 +56,7 @@ def file_uploader() -> rx.Component:
                 },
                 accept={
                     "application/pdf": [".pdf"],
-                    "application/vnd.openxmlformats-officedocument."
-                    "wordprocessingml.document": [".docx"],
+                    "application/vnd.openxmlformats-officedocument." "wordprocessingml.document": [".docx"],
                     "text/plain": [".txt"],
                 },
                 multiple=False,
@@ -75,15 +73,10 @@ def file_uploader() -> rx.Component:
                 size="2",
                 variant="solid",
                 color_scheme=ACCENT_COLOR,
-                disabled=(~has_selected_files | ~can_upload | 
-                         is_processing_file),
+                disabled=(~has_selected_files | ~can_upload | is_processing_file),
                 on_click=[
-                    ChatState.handle_upload(
-                        rx.upload_files("sidebar_upload")
-                    ),
-                    rx.call_script(
-                        "document.getElementById('sidebar_upload').value = ''"
-                    ),
+                    ChatState.handle_upload(rx.upload_files("sidebar_upload")),
+                    rx.call_script("document.getElementById('sidebar_upload').value = ''"),
                 ],
             ),
             spacing="3",
@@ -132,11 +125,7 @@ def file_uploader() -> rx.Component:
                         rx.cond(
                             ChatState.upload_error != "",
                             rx.badge(
-                                rx.icon(
-                                    "triangle-alert", 
-                                    size=14, 
-                                    margin_right="0.25em"
-                                ),
+                                rx.icon("triangle-alert", size=14, margin_right="0.25em"),
                                 ChatState.upload_error,
                                 color_scheme="red",
                                 variant="soft",

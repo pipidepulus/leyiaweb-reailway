@@ -1,10 +1,13 @@
 """Componente del área de chat, versión estable con input controlado."""
 
 import reflex as rx
+
 from ..states.chat_state import ChatState
+from .token_meter import token_meter
 
 # Constante para el color principal de la UI del chat
 ACCENT_COLOR = "indigo"
+
 
 def message_bubble(message: rx.Var[dict]) -> rx.Component:
     """Crea una burbuja de mensaje con estilo diferenciado."""
@@ -12,47 +15,50 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
     return rx.box(
         rx.hstack(
             # Volvemos a los avatares simples para garantizar estabilidad
-             rx.flex(
-                 rx.cond(
-                     is_user,
-                     rx.avatar(
-                         src="/usuario.png",
-                         fallback="US",
-                    size="2",
-                    color_scheme="blue",
-                    variant="solid",
-                    flex_shrink="0",
+            rx.flex(
+                rx.cond(
+                    is_user,
+                    rx.avatar(
+                        src="/usuario.png",
+                        fallback="US",
+                        size="2",
+                        color_scheme="blue",
+                        variant="solid",
+                        flex_shrink="0",
+                    ),
+                    rx.avatar(
+                        src="/balanza.png",
+                        fallback="BT",
+                        size="2",
+                        color_scheme="green",
+                        variant="solid",
+                        flex_shrink="0",
+                    ),
                 ),
-                rx.avatar(
-                    src="/balanza.png",
-                    fallback="BT",
-                    size="2",
-                    color_scheme="green",
-                    variant="solid",
-                    flex_shrink="0",
-                ),
-             ),            
-            spacing="2",
-        ),
+                spacing="2",
+            ),
             rx.box(
                 rx.markdown(
                     message["content"],
                     class_name="prose prose-base max-w-none break-words",
                     component_map={
                         "a": lambda *children, **props: rx.link(
-                            *children,      # Pasa el texto del enlace
-                            is_external=True, # Abre en una nueva pestaña
-                            **props         # Pasa las demás propiedades (href, etc.)
+                            *children,  # Pasa el texto del enlace
+                            is_external=True,  # Abre en una nueva pestaña
+                            # Pasa las demás propiedades (href, etc.)
+                            **props,
                         )
-                    }                    
+                    },
                 ),
                 rx.cond(
                     ~is_user,
                     rx.icon_button(
                         "copy",
                         on_click=rx.set_clipboard(message["content"]),
-                        size="1", variant="ghost", color_scheme="gray",
-                        class_name="absolute top-2 right-2 opacity-50 hover:opacity-100 transition-opacity",
+                        size="1",
+                        variant="ghost",
+                        color_scheme="gray",
+                        class_name=("absolute top-2 right-2 " "opacity-50 hover:opacity-100 transition-opacity"),
                         title="Copiar texto",
                     ),
                 ),
@@ -80,12 +86,14 @@ def message_bubble(message: rx.Var[dict]) -> rx.Component:
         ),
         width="100%",
         min_width="0",
-        padding_x="0.25rem",  # Pequeño padding lateral   
-        margin_bottom="0.75rem",  # Espacio entre mensajes     
+        padding_x="0.25rem",  # Pequeño padding lateral
+        margin_bottom="0.75rem",  # Espacio entre mensajes
     )
+
 
 # Versión que funcionaba localmente, restaurada como punto de partida.
 # Usa rx.el.textarea con enter_key_submit y el wrapper rx.box.
+
 
 def chat_input_area() -> rx.Component:
     """Área de entrada de texto con soporte para texto largo."""
@@ -97,8 +105,8 @@ def chat_input_area() -> rx.Component:
                     rx.el.textarea(
                         name="prompt",
                         id="chat-input-box",
-                        placeholder="Escribe tu pregunta aquí... pulsa Enter para enviar.",
-                        #value=ChatState.current_question,
+                        placeholder=("Escribe tu pregunta aquí... " "pulsa Enter para enviar."),
+                        # value=ChatState.current_question,
                         on_change=ChatState.set_current_question.debounce(250),
                         disabled=ChatState.processing,
                         resize="vertical",
@@ -106,11 +114,11 @@ def chat_input_area() -> rx.Component:
                         max_height="200px",
                         py="0.5em",
                         enter_key_submit=True,
-                        width="100%", 
+                        width="100%",
                         style={
                             "font-size": "16px",
                             "white-space": "pre-wrap",
-                            "word-wrap": "break-word", 
+                            "word-wrap": "break-word",
                             "overflow-wrap": "break-word",
                             "background_color": "transparent",
                             "border": "none",
@@ -119,14 +127,10 @@ def chat_input_area() -> rx.Component:
                         },
                     ),
                     flex_grow=1,
-                    width="0"
+                    width="0",
                 ),
                 rx.icon_button(
-                    rx.cond(
-                        ChatState.processing,
-                        rx.spinner(size="3"),
-                        rx.icon("send", size=20)
-                    ),
+                    rx.cond(ChatState.processing, rx.spinner(size="3"), rx.icon("send", size=20)),
                     type="submit",
                     disabled=ChatState.processing | (ChatState.current_question.strip() == ""),
                     size="3",
@@ -137,10 +141,10 @@ def chat_input_area() -> rx.Component:
                 width="100%",
             ),
             on_submit=ChatState.send_message,
-            reset_on_submit=False, # Como lo tenías originalmente.
+            reset_on_submit=False,  # Como lo tenías originalmente.
             width="100%",
         ),
-        padding_x="0.5em", 
+        padding_x="0.5em",
         padding_y="0.5em",
         border="1px solid var(--gray-4)",
         border_radius="var(--radius-4)",
@@ -152,9 +156,14 @@ def chat_input_area() -> rx.Component:
         flex_shrink="0",
     )
 
+
 def chat_area() -> rx.Component:
-    """Área principal del chat con autoscroll automático y sin desbordamiento horizontal."""
+    """
+    Área principal del chat con autoscroll automático y sin desbordamiento
+    horizontal.
+    """
     return rx.vstack(
+        token_meter(),
         rx.box(
             rx.foreach(ChatState.messages, message_bubble),
             id="chat-messages-container",
@@ -180,20 +189,15 @@ def chat_area() -> rx.Component:
         align_items="stretch",
     )
 
+
 def chat() -> rx.Component:
     """Componente principal de chat exportado."""
     return rx.box(
         # Diálogo para crear notebook
-        rx.cond(
-            ChatState.show_notebook_dialog,
-            create_notebook_dialog(),
-            rx.fragment()
-        ),
-        
+        rx.cond(ChatState.show_notebook_dialog, create_notebook_dialog(), rx.fragment()),
         # Botón flotante para crear notebook (solo si hay conversación)
         rx.cond(
-            (ChatState.messages.length() >= 4) & 
-            (~ChatState.processing),
+            (ChatState.messages.length() >= 4) & (~ChatState.processing),
             rx.button(
                 rx.icon("book-plus", size=20),
                 "Crear Notebook",
@@ -205,11 +209,10 @@ def chat() -> rx.Component:
                 size="3",
                 color_scheme="green",
                 variant="solid",
-                box_shadow="lg"
+                box_shadow="lg",
             ),
-            rx.fragment()
+            rx.fragment(),
         ),
-        
         chat_area(),
         height="calc(100vh - 60px)",
         width="100%",
@@ -220,60 +223,36 @@ def chat() -> rx.Component:
             "flex-direction": "column",
             "align-items": "stretch",
         },
-         # Solo inicializar el chat sin los métodos de monitoreo que causan recompilaciones
-        on_mount=ChatState.initialize_chat_simple
+        # Solo inicializar el chat sin los métodos de monitoreo
+        # que causan recompilaciones
+        on_mount=ChatState.initialize_chat_simple,
     )
 
 
 def create_notebook_dialog() -> rx.Component:
     """Diálogo para crear un notebook a partir de la conversación."""
     return rx.dialog(
-        rx.dialog.trigger(rx.box()),  # Trigger vacío ya que se controla con estado
+        # Trigger vacío ya que se controla con estado
+        rx.dialog.trigger(rx.box()),
         rx.dialog.content(
             rx.dialog.title("Crear Notebook"),
-            rx.dialog.description(
-                "Convierte tu conversación actual en un notebook editable y persistente."
-            ),
-            
+            rx.dialog.description(("Convierte tu conversación actual en un notebook editable " "y persistente.")),
             rx.vstack(
                 rx.text("Título del notebook:", weight="bold"),
-                rx.input(
-                    placeholder="Ej: Análisis de la Ley 1437 de 2011",
-                    value=ChatState.notebook_title,
-                    on_change=ChatState.set_notebook_title,
-                    width="100%"
-                ),
-                rx.text(
-                    f"Se incluirán {ChatState.messages.length()} mensajes en el notebook.",
-                    size="2",
-                    color="gray"
-                ),
+                rx.input(placeholder="Ej: Análisis de la Ley 1437 de 2011", value=ChatState.notebook_title, on_change=ChatState.set_notebook_title, width="100%"),
+                rx.text(f"Se incluirán {ChatState.messages.length()} " "mensajes en el notebook.", size="2", color="gray"),
                 spacing="3",
                 width="100%",
-                margin_y="1rem"
+                margin_y="1rem",
             ),
-            
             rx.hstack(
-                rx.dialog.close(
-                    rx.button(
-                        "Cancelar",
-                        variant="outline",
-                        on_click=ChatState.hide_create_notebook_dialog
-                    )
-                ),
-                rx.dialog.close(
-                    rx.button(
-                        "Crear Notebook",
-                        on_click=ChatState.create_notebook_from_current_chat,
-                        loading=ChatState.loading if hasattr(ChatState, 'loading') else False
-                    )
-                ),
+                rx.dialog.close(rx.button("Cancelar", variant="outline", on_click=ChatState.hide_create_notebook_dialog)),
+                rx.dialog.close(rx.button("Crear Notebook", on_click=ChatState.create_notebook_from_current_chat, loading=ChatState.loading if hasattr(ChatState, "loading") else False)),
                 spacing="3",
                 justify="end",
-                width="100%"
+                width="100%",
             ),
-            
-            max_width="500px"
+            max_width="500px",
         ),
-        open=ChatState.show_notebook_dialog
+        open=ChatState.show_notebook_dialog,
     )

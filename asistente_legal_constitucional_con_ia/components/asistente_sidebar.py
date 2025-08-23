@@ -1,8 +1,9 @@
 """Panel contextual de archivos, con estilo unificado."""
 
 import reflex as rx
-from .file_uploader import file_uploader
+
 from .file_list import file_list
+from .file_uploader import file_uploader
 
 
 def asistente_sidebar() -> rx.Component:

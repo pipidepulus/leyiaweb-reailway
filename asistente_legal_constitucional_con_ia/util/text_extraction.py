@@ -1,20 +1,18 @@
 import io
+import logging
 import os
 import tempfile
-import logging
 from typing import Optional
+
 import docx
 import fitz
 import pytesseract
 from pdf2image import convert_from_path
-from PIL import Image
 
 logging.basicConfig(level=logging.INFO)
 
 
-def extract_text_from_bytes(
-    file_bytes: bytes, filename: str, progress_callback=None, skip_ocr=False
-) -> Optional[str]:
+def extract_text_from_bytes(file_bytes: bytes, filename: str, progress_callback=None, skip_ocr=False) -> Optional[str]:
     """
     Extracts text from a file given as bytes (PDF, DOCX, TXT).
     For PDF, it attempts direct extraction and falls back to OCR unless skip_ocr=True.
@@ -22,48 +20,31 @@ def extract_text_from_bytes(
     """
     try:
         if filename.lower().endswith(".pdf"):
-            logging.info(
-                f"Processing PDF '{filename}' with PyMuPDF."
-            )
+            logging.info(f"Processing PDF '{filename}' with PyMuPDF.")
             text = ""
-            with fitz.open(
-                stream=file_bytes, filetype="pdf"
-            ) as doc:
+            with fitz.open(stream=file_bytes, filetype="pdf") as doc:
                 for page in doc:
                     text += page.get_text()
-            
+
             if len(text.strip()) < 100:
-                logging.warning(
-                    f"Minimal text from '{filename}'. Trying OCR."
-                )
-                
+                logging.warning(f"Minimal text from '{filename}'. Trying OCR.")
+
                 # Si skip_ocr=True, devolver el texto mínimo y dejar que el llamador maneje el OCR
                 if skip_ocr:
                     return text.strip()
-                
-                with tempfile.NamedTemporaryFile(
-                    delete=False, suffix=".pdf"
-                ) as tmp:
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                     tmp.write(file_bytes)
                     tmp_path = tmp.name
                 try:
-                    images = convert_from_path(
-                        tmp_path, dpi=200
-                    )
+                    images = convert_from_path(tmp_path, dpi=200)
                     ocr_text = ""
                     total_pages = len(images)
                     for i, image in enumerate(images):
-                        logging.info(
-                            f"OCR on page {i + 1}/{total_pages} of '{filename}'."
-                        )
+                        logging.info(f"OCR on page {i + 1}/{total_pages} of '{filename}'.")
                         if progress_callback:
                             progress_callback(i + 1, total_pages)
-                        ocr_text += (
-                            pytesseract.image_to_string(
-                                image, lang="spa+eng"
-                            )
-                            + "\n"
-                        )
+                        ocr_text += pytesseract.image_to_string(image, lang="spa+eng") + "\n"
                     text = ocr_text
                 finally:
                     os.remove(tmp_path)
@@ -71,18 +52,12 @@ def extract_text_from_bytes(
         elif filename.lower().endswith(".docx"):
             logging.info(f"Processing DOCX '{filename}'.")
             doc = docx.Document(io.BytesIO(file_bytes))
-            return "\n".join(
-                [para.text for para in doc.paragraphs]
-            ).strip()
+            return "\n".join([para.text for para in doc.paragraphs]).strip()
         elif filename.lower().endswith(".txt"):
             logging.info(f"Processing TXT '{filename}'.")
-            return file_bytes.decode(
-                "utf-8", errors="ignore"
-            ).strip()
+            return file_bytes.decode("utf-8", errors="ignore").strip()
         else:
-            logging.error(
-                f"Unsupported file format: {filename}"
-            )
+            logging.error(f"Unsupported file format: {filename}")
             return None
     except Exception as e:
         logging.error(

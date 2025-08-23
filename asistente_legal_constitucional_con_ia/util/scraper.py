@@ -1,9 +1,10 @@
 import logging
+from typing import Any, Dict, List, Optional
+from urllib.parse import urljoin
+
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
-from urllib.parse import urljoin
-from typing import Optional, List, Dict, Any
 
 # --- Constants ---
 URL_CAMARA = "https://www.camara.gov.co/secretaria/proyectos-de-ley#menu"
@@ -12,7 +13,7 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 TIMEOUT = 20
 
 # --- Logger Setup ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 def _fetch_html(url: str) -> Optional[BeautifulSoup]:
@@ -53,7 +54,7 @@ def _parse_proyectos(soup: BeautifulSoup, base_url: str, num_proyectos: int) -> 
 
         numero_proyecto = num_td.get_text(strip=True) if num_td else "N/A"
         estado_proyecto = est_td.get_text(strip=True) if est_td else "N/A"
-        
+
         titulo_proyecto = "N/A"
         enlace_proyecto = "N/A"
         link_tag = tit_td.find("a") if tit_td else None
@@ -63,13 +64,15 @@ def _parse_proyectos(soup: BeautifulSoup, base_url: str, num_proyectos: int) -> 
         elif tit_td:
             titulo_proyecto = tit_td.get_text(strip=True)
 
-        proyectos_list.append({
-            "Número": numero_proyecto,
-            "Título": titulo_proyecto,
-            "Estado": estado_proyecto,
-            "Enlace": enlace_proyecto,
-        })
-    
+        proyectos_list.append(
+            {
+                "Número": numero_proyecto,
+                "Título": titulo_proyecto,
+                "Estado": estado_proyecto,
+                "Enlace": enlace_proyecto,
+            }
+        )
+
     logging.info(f"Successfully scraped {len(proyectos_list)} projects.")
     return proyectos_list
 
@@ -93,8 +96,8 @@ def scrape_proyectos_recientes_camara(num_proyectos: int = 15) -> Optional[pd.Da
         if proyectos_data is None:
             return None
         if not proyectos_data:
-            return pd.DataFrame() # Return empty DataFrame if no projects found
-            
+            return pd.DataFrame()  # Return empty DataFrame if no projects found
+
         return pd.DataFrame(proyectos_data)
 
     except Exception as e:

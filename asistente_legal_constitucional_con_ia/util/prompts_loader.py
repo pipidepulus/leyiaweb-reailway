@@ -1,4 +1,5 @@
 import os
+
 from ..util.text_extraction import extract_text_from_bytes
 
 
@@ -12,12 +13,12 @@ def extract_prompts_from_docx(docx_path: str):
     if not text:
         return "", []
     # Separar introducción y prompts (asume prompts separados por líneas vacías o numerados)
-    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
     intro = []
     prompts = []
     current = []
     for line in lines:
-        if (line.lower().startswith("prompt") or line[:2].isdigit()):
+        if line.lower().startswith("prompt") or line[:2].isdigit():
             if current:
                 prompts.append(" ".join(current).strip())
                 current = []

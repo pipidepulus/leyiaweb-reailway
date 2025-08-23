@@ -2,13 +2,14 @@
 """Página para transcripción de audio."""
 
 import reflex as rx
+
 from ..components.layout import main_layout
 from ..states.transcription_state import TranscriptionState, TranscriptionType
 
 
 def transcription_page() -> rx.Component:
     """Página de transcripción de audio."""
-    
+
     is_processing = TranscriptionState.transcribing
     has_error = TranscriptionState.error_message != ""
     is_successful = TranscriptionState.current_transcription == "SUCCESS"
@@ -16,7 +17,6 @@ def transcription_page() -> rx.Component:
 
     content = rx.vstack(
         rx.heading("Transcripción de Audio", size="8", margin_bottom="2rem"),
-        
         # --- SECCIÓN DE SUBIDA Y PROCESO ---
         # ✅ REFACTORIZADO: Esta sección se oculta cuando la transcripción es exitosa
         rx.cond(
@@ -25,7 +25,6 @@ def transcription_page() -> rx.Component:
                 rx.vstack(
                     rx.heading("Subir archivo de audio", size="5"),
                     rx.text("Sube un archivo MP3 para transcribirlo.", size="2", color_scheme="gray"),
-
                     rx.upload(
                         rx.vstack(
                             rx.button("📁 Seleccionar archivo"),
@@ -39,25 +38,15 @@ def transcription_page() -> rx.Component:
                         disabled=is_processing,
                         multiple=False,
                     ),
-
-                    rx.hstack(
-                        rx.foreach(
-                            rx.selected_files("upload_mp3"),
-                            lambda file: rx.text(f"Archivo: {file}")
-                        )
-                    ),
-                    
+                    rx.hstack(rx.foreach(rx.selected_files("upload_mp3"), lambda file: rx.text(f"Archivo: {file}"))),
                     rx.button(
                         "🎙️ Iniciar Transcripción",
-                        on_click=TranscriptionState.handle_transcription_request(
-                            rx.upload_files(upload_id="upload_mp3")
-                        ),
+                        on_click=TranscriptionState.handle_transcription_request(rx.upload_files(upload_id="upload_mp3")),
                         loading=is_processing,
                         disabled=is_processing | no_file_selected,
                         size="3",
                         margin_top="1rem",
                     ),
-
                     # ✅ REFACTORIZADO: El indicador de progreso ahora es más claro
                     rx.cond(
                         is_processing,
@@ -79,7 +68,6 @@ def transcription_page() -> rx.Component:
                 width="100%",
             ),
         ),
-
         # --- MENSAJE DE ÉXITO ---
         rx.cond(
             is_successful,
@@ -109,7 +97,6 @@ def transcription_page() -> rx.Component:
                 style={"border": "2px solid", "border_color": "var(--green-a6)"},
             ),
         ),
-
         # --- HISTORIAL DE TRANSCRIPCIONES ---
         rx.card(
             rx.vstack(
@@ -124,7 +111,6 @@ def transcription_page() -> rx.Component:
                     ),
                     align="center",
                 ),
-                
                 rx.cond(
                     TranscriptionState.transcriptions,
                     rx.vstack(
@@ -139,13 +125,12 @@ def transcription_page() -> rx.Component:
                         "No hay transcripciones anteriores.",
                         color_scheme="gray",
                         padding="2rem 0",
-                    )
+                    ),
                 ),
                 spacing="4",
             ),
             width="100%",
         ),
-
         # --- MENSAJE DE ERROR ---
         rx.cond(
             has_error,
@@ -155,7 +140,6 @@ def transcription_page() -> rx.Component:
                 color_scheme="red",
             ),
         ),
-        
         spacing="6",
         width="100%",
         max_width="800px",
@@ -164,16 +148,16 @@ def transcription_page() -> rx.Component:
         on_mount=[
             TranscriptionState.refresh_transcriptions,
             TranscriptionState.reset_upload_state,
-        ]
+        ],
     )
-    
+
     return main_layout(content)
 
 
 def transcription_item(trans: TranscriptionType) -> rx.Component:
     """Componente para mostrar una transcripción en el historial."""
     notebook_exists = trans.notebook_id > 0
-    
+
     return rx.card(
         rx.hstack(
             rx.vstack(

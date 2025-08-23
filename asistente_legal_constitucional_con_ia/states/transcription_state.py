@@ -1,18 +1,19 @@
 # asistente_legal_constitucional_con_ia/states/transcription_state.py
 """Estado para transcripción de audio con AssemblyAI."""
 
+import asyncio
+import dataclasses
 import json
 import os
-import reflex as rx
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-from ..models.database import Notebook, AudioTranscription
-from dotenv import load_dotenv
-import dataclasses
+from typing import Any, Dict, List, Optional
+
 import assemblyai
-import asyncio
-import httpx  # ✅ CORREGIDO: Importar httpx para configurar timeouts
-import sys
+import reflex as rx
+import reflex_clerk_api as clerk
+from dotenv import load_dotenv
+
+from ..models.database import AudioTranscription, Notebook
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ load_dotenv()
 @dataclasses.dataclass
 class TranscriptionType:
     """Tipo para representar una transcripción en el frontend."""
+
     id: int
     filename: str
     transcription_text: str
@@ -39,6 +41,16 @@ class TranscriptionState(rx.State):
     error_message: str = ""
     uploaded_files: list[str] = []
 
+    async def get_user_workspace_id(self) -> str:
+        """Obtiene el workspace ID del usuario autenticado usando Clerk API."""
+        try:
+            clerk_state = await self.get_state(clerk.ClerkState)
+            user_id = getattr(clerk_state, "user_id", None) or getattr(clerk_state, "userId", None)
+            return str(user_id) if user_id else "public"
+        except Exception as e:
+            print(f"DEBUG: ClerkState no disponible o error leyendo user_id: {e}")
+            return "public"
+
     @rx.event
     async def handle_transcription_request(self, files: List[rx.UploadFile]):
         """
@@ -52,7 +64,7 @@ class TranscriptionState(rx.State):
         try:
             # 1. Validar y leer el archivo
             # ✅ CORREGIDO: Usar file.name en lugar de file.filename
-            if not file.content_type == 'audio/mpeg':
+            if not file.content_type == "audio/mpeg":
                 yield rx.toast.error(f"'{file.name}' no es un MP3.")
                 return
 
@@ -69,62 +81,37 @@ class TranscriptionState(rx.State):
             api_key = os.getenv("ASSEMBLYAI_API_KEY")
             if not api_key:
                 raise ValueError("API key de AssemblyAI no configurada en .env")
-            
-            # ✅ DEBUG: Añade estas tres líneas de depuración aquí
-            # print("--- INICIANDO DEPURACIÓN DE ASSEMBLYAI ---")
-            # print(f"Python Executable: {sys.executable}")
-            # print(f"AssemblyAI library location: {assemblyai.__file__}")
-            # print(f"Attributes of settings object: {dir(assemblyai.settings)}")
-            # print("--- FIN DE DEPURACIÓN ---")
 
-            # ✅ SOLUCIÓN TIMEOUT: Configurar timeouts explícitamente.
-            # Aumentamos el timeout para todas las operaciones, especialmente la escritura (subida).
-            # El valor está en segundos. 300s = 5 minutos. Ajústalo si necesitas más.
             assemblyai.settings.http_timeout = 300
-            
+
             assemblyai.settings.api_key = api_key
             transcriber = assemblyai.Transcriber()
-            config = assemblyai.TranscriptionConfig(
-                speaker_labels=True, language_code="es"
-            )
+            config = assemblyai.TranscriptionConfig(speaker_labels=True, language_code="es")
 
             # Usamos .submit() que devuelve el control inmediatamente
-            submitted_transcript = await asyncio.to_thread(
-                transcriber.submit, audio_data, config
-            )
+            submitted_transcript = await asyncio.to_thread(transcriber.submit, audio_data, config)
 
-            self.progress_message = (
-                f"Transcripción en cola (ID: {submitted_transcript.id})."
-            )
+            self.progress_message = f"Transcripción en cola (ID: {submitted_transcript.id})."
             yield
 
             # 3. Sondear (POLL) el estado de la transcripción
             while True:
-                polled_transcript = await asyncio.to_thread(
-                    assemblyai.Transcript.get_by_id, submitted_transcript.id
-                )
+                polled_transcript = await asyncio.to_thread(assemblyai.Transcript.get_by_id, submitted_transcript.id)
 
                 if polled_transcript.status == assemblyai.TranscriptStatus.completed:
                     self.progress_message = "¡Éxito! Generando notebook..."
                     yield
                     # ✅ CORREGIDO: Pasar file.name a la función de procesamiento
-                    await self._process_successful_transcription(
-                        polled_transcript, file.name
-                    )
+                    await self._process_successful_transcription(polled_transcript, file.name)
 
                     yield rx.toast.success(f"¡Notebook de '{file.name}' generado!")
 
                     break
 
                 elif polled_transcript.status == assemblyai.TranscriptStatus.error:
-                    raise RuntimeError(
-                        f"Error de AssemblyAI: {polled_transcript.error}"
-                    )
+                    raise RuntimeError(f"Error de AssemblyAI: {polled_transcript.error}")
                 else:
-                    self.progress_message = (
-                        f"Estado: {polled_transcript.status}. "
-                        "Comprobando de nuevo en 5s..."
-                    )
+                    self.progress_message = f"Estado: {polled_transcript.status}. " "Comprobando de nuevo en 5s..."
                     yield
                     await asyncio.sleep(5)
 
@@ -136,51 +123,40 @@ class TranscriptionState(rx.State):
             self.progress_message = ""
             yield
 
-    async def _process_successful_transcription(
-        self, transcript: assemblyai.Transcript, filename: str
-    ):
+    async def _process_successful_transcription(self, transcript: assemblyai.Transcript, filename: str):
         """Helper para procesar una transcripción exitosa."""
         if transcript.utterances:
-            lines = [
-                f"**Hablante {utt.speaker}:** {utt.text}"
-                for utt in transcript.utterances
-            ]
-            transcription_text = (
-                "## Transcripción con Identificación de Hablantes\n\n"
-                + "\n\n".join(lines)
-            )
+            lines = [f"**Hablante {utt.speaker}:** {utt.text}" for utt in transcript.utterances]
+            transcription_text = "## Transcripción con Identificación de Hablantes\n\n" + "\n\n".join(lines)
         else:
             transcription_text = transcript.text or ""
 
         notebook_title = f"Transcripción - {os.path.splitext(filename)[0]}"
-        
+
         duration_secs = transcript.audio_duration or 0
         duration_fmt = f"{int(duration_secs // 60)}:{int(duration_secs % 60):02d}"
 
-        await self._create_transcription_notebook(
-            transcription_text, notebook_title, filename, duration_fmt
-        )
+        await self._create_transcription_notebook(transcription_text, notebook_title, filename, duration_fmt)
 
         self.current_transcription = "SUCCESS"
         self.uploaded_files = []
         await self.load_user_transcriptions()
-        #yield rx.toast.success(f"¡Notebook de '{filename}' generado!")
+        # yield rx.toast.success(f"¡Notebook de '{filename}' generado!")
 
-    async def _create_transcription_notebook(
-        self, transcription_text: str, title: str, filename: str, duration: str
-    ):
+    async def _create_transcription_notebook(self, transcription_text: str, title: str, filename: str, duration: str):
+
+        workspace_id = await self.get_user_workspace_id()
+
         """Crea un notebook y el registro de transcripción en la BD."""
         with rx.session() as session:
             from ..models.database import Notebook
 
-            notebook_content = self._convert_transcription_to_notebook(
-                transcription_text, title, filename
-            )
+            notebook_content = self._convert_transcription_to_notebook(transcription_text, title, filename)
 
             notebook = Notebook(
                 title=title,
                 content=json.dumps(notebook_content),
-                workspace_id="public",
+                workspace_id=workspace_id,
                 notebook_type="transcription",
             )
             session.add(notebook)
@@ -192,7 +168,7 @@ class TranscriptionState(rx.State):
                 transcription_text=transcription_text,
                 notebook_id=notebook.id,
                 audio_duration=duration,
-                workspace_id="public",
+                workspace_id=workspace_id,
             )
             session.add(transcription)
             session.commit()
@@ -201,16 +177,19 @@ class TranscriptionState(rx.State):
     async def load_user_transcriptions(self):
         """Carga todas las transcripciones del usuario."""
         try:
+
+            workspace_id = await self.get_user_workspace_id()
+
             with rx.session() as session:
                 from ..models.database import AudioTranscription, Notebook
 
                 query = (
                     session.query(AudioTranscription)
                     .outerjoin(Notebook, AudioTranscription.notebook_id == Notebook.id)
-                    .filter(AudioTranscription.workspace_id == "public")
+                    .filter(AudioTranscription.workspace_id == workspace_id)
                     .order_by(AudioTranscription.created_at.desc())
                 )
-                
+
                 self.transcriptions = [
                     TranscriptionType(
                         id=t.id,
@@ -219,8 +198,9 @@ class TranscriptionState(rx.State):
                         audio_duration=t.audio_duration or "N/A",
                         created_at=t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else "N/A",
                         updated_at=t.updated_at.strftime("%Y-%m-%d %H:%M") if t.updated_at else "N/A",
-                        notebook_id=t.notebook_id if t.notebook_id else 0
-                    ) for t in query.all()
+                        notebook_id=t.notebook_id if t.notebook_id else 0,
+                    )
+                    for t in query.all()
                 ]
         except Exception as e:
             self.error_message = f"Error cargando transcripciones: {e}"
@@ -229,65 +209,60 @@ class TranscriptionState(rx.State):
     async def delete_transcription(self, transcription_id: int):
         """Elimina una transcripción y su notebook asociado."""
         try:
-            with rx.session() as session:
-                from ..models.database import AudioTranscription, Notebook
-                
-                # Buscar la transcripción
-                transcription = session.get(AudioTranscription, transcription_id)
-                if not transcription:
-                    raise ValueError("Transcripción no encontrada")
+            workspace_id = await self.get_user_workspace_id()
+            if workspace_id == "public":
+                self.error_message = "Debes iniciar sesión para eliminar transcripciones."
+                yield rx.toast.error(self.error_message)
+                return
 
-                # Eliminar el notebook asociado si existe
+            with rx.session() as session:
+                # Buscar la transcripción bajo el workspace del usuario
+                transcription = (
+                    session.query(AudioTranscription)
+                    .filter(
+                        AudioTranscription.id == transcription_id,
+                        AudioTranscription.workspace_id == workspace_id,
+                    )
+                    .first()
+                )
+                if not transcription:
+                    self.error_message = "Transcripción no encontrada o sin permisos."
+                    yield rx.toast.error(self.error_message)
+                    return
+
+                # Eliminar el notebook asociado si pertenece al mismo workspace
                 if transcription.notebook_id:
-                    notebook = session.get(Notebook, transcription.notebook_id)
+                    notebook = (
+                        session.query(Notebook)
+                        .filter(
+                            Notebook.id == transcription.notebook_id,
+                            Notebook.workspace_id == workspace_id,
+                        )
+                        .first()
+                    )
                     if notebook:
                         session.delete(notebook)
 
                 # Eliminar la transcripción
                 session.delete(transcription)
                 session.commit()
-                
+
             # Recargar las transcripciones
             await self.load_user_transcriptions()
-            
+
             # Mostrar mensaje de éxito
             yield rx.toast.success("Transcripción eliminada correctamente")
-            
+
         except Exception as e:
             self.error_message = f"Error al eliminar: {e}"
             yield rx.toast.error(self.error_message)
 
-    def _convert_transcription_to_notebook(
-        self, transcription_text: str, title: str, filename: str
-    ) -> Dict[str, Any]:
+    def _convert_transcription_to_notebook(self, transcription_text: str, title: str, filename: str) -> Dict[str, Any]:
         """Convierte una transcripción a formato notebook JSON."""
-        now = datetime.now().strftime('%d/%m/%Y a las %H:%M')
-        header_cell = {
-            "cell_type": "markdown",
-            "source": [
-                f"# {title}\n\n",
-                f"**Archivo:** {filename}\n\n",
-                f"**Generado:** {now}\n\n",
-                "---\n\n"
-            ]
-        }
-        content_cell = {
-            "cell_type": "markdown",
-            "source": [
-                "## 📝 Transcripción Completa\n\n",
-                f"{transcription_text}\n\n"
-            ]
-        }
-        return {
-            "cells": [header_cell, content_cell],
-            "metadata": {
-                "kernelspec": {
-                    "display_name": "Audio Transcription",
-                    "language": "markdown",
-                    "name": "audio_transcription"
-                }
-            }
-        }
+        now = datetime.now().strftime("%d/%m/%Y a las %H:%M")
+        header_cell = {"cell_type": "markdown", "source": [f"# {title}\n\n", f"**Archivo:** {filename}\n\n", f"**Generado:** {now}\n\n", "---\n\n"]}
+        content_cell = {"cell_type": "markdown", "source": ["## 📝 Transcripción Completa\n\n", f"{transcription_text}\n\n"]}
+        return {"cells": [header_cell, content_cell], "metadata": {"kernelspec": {"display_name": "Audio Transcription", "language": "markdown", "name": "audio_transcription"}}}
 
     @rx.event
     async def reset_upload_state(self):

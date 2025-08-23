@@ -1,24 +1,28 @@
 """Página que muestra una biblioteca de prompts, usando el layout principal."""
 
+from typing import Dict, List
+
 import reflex as rx
+
 from ..components.layout import main_layout
-from typing import List, Dict, Any
-from ..states.prompts_state import PromptsState as ScrollState, PROMPTS_CONTAINER_ID
+from ..states.prompts_state import PROMPTS_CONTAINER_ID, PromptsState as ScrollState
+
 
 class Prompt(rx.Base):
     title: str
     description: str
     content: str
 
+
 initial_data: Dict[str, List[Prompt]] = {
     "Fase 1: Comprensión Integral del Proyecto/Ley": [
         Prompt(
             title="1.1. Prompt: Resumen Ejecutivo (Zero-shot)",
             description="Este prompt busca obtener una visión general y concisa del texto normativo.",
-            content="""Analiza el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) y genera un resumen ejecutivo (máximo 500 palabras) que incluya: 
-1. Problema que aborda. 
-2. Objetivos principales. 
-3. Mecanismos o cambios clave que propone. 
+            content="""Analiza el "[Nombre del Proyecto de Ley/Ley]" (Archivo: `[nombre_del_archivo.ext]`) y genera un resumen ejecutivo (máximo 500 palabras) que incluya:
+1. Problema que aborda.
+2. Objetivos principales.
+3. Mecanismos o cambios clave que propone.
 4. Implicaciones preliminares más evidentes.""",
         ),
         Prompt(
@@ -215,8 +219,10 @@ Presenta ambos argumentos.""",
     ],
 }
 
+
 class PromptsState(ScrollState):
     """Maneja el estado y la lógica para la página de la biblioteca de prompts."""
+
     prompt_phases: Dict[str, List[Prompt]] = initial_data
     prompt_copied_feedback: Dict[str, bool] = {}
 
@@ -234,6 +240,7 @@ class PromptsState(ScrollState):
         current_feedback_state[prompt_unique_id] = True
         self.prompt_copied_feedback = current_feedback_state
         return rx.set_clipboard(content)
+
 
 def render_prompt_card(prompt: Prompt, phase_key: str, index: int) -> rx.Component:
     """Crea una tarjeta interactiva para un solo prompt."""
@@ -290,35 +297,45 @@ def prompts_page() -> rx.Component:
                     "para que genere una respuesta útil. Es como formular una pregunta bien "
                     "enfocada para obtener un análisis o información precisa."
                 ),
-                align="center", size="3", color_scheme="gray", margin_bottom="1em",
+                align="center",
+                size="3",
+                color_scheme="gray",
+                margin_bottom="1em",
             ),
             rx.text(
                 "Utiliza, edita y copia estos prompts para tus análisis de leyes y proyectos de ley.",
-                align="center", size="3", color_scheme="gray", margin_bottom="2em",
+                align="center",
+                size="3",
+                color_scheme="gray",
+                margin_bottom="2em",
             ),
             rx.foreach(
                 PromptsState.prompt_phases,
                 lambda item_tuple: rx.vstack(
                     rx.heading(item_tuple[0], size="6", margin_top="1.5em", margin_bottom="1em"),
-                     # --- INICIO DEL CÓDIGO CORRECTO Y DEFINITIVO ---
+                    # --- INICIO DEL CÓDIGO CORRECTO Y DEFINITIVO ---
                     rx.vstack(
                         rx.foreach(
                             item_tuple[1],
                             lambda prompt, index: render_prompt_card(prompt, item_tuple[0], index),
                         ),
                         # Espacio entre las tarjetas
-                         # En vstack, 'gap' se llama 'spacing' para el espaciado entre elementos
-                        spacing="4", 
+                        # En vstack, 'gap' se llama 'spacing' para el espaciado entre elementos
+                        spacing="4",
                         width="100%",
                         # Asegura que las tarjetas se estiren para ocupar todo el ancho
-                        align_items="stretch", 
+                        align_items="stretch",
                     ),
                     # --- FIN DEL CÓDIGO CORRECTO Y DEFINITIVO ---
                     rx.divider(margin_y="2em", color_scheme="blue"),
-                    width="100%", spacing="4", align_items="center",
+                    width="100%",
+                    spacing="4",
+                    align_items="center",
                 ),
             ),
-            width="100%", spacing="4", align_items="center",
+            width="100%",
+            spacing="4",
+            align_items="center",
         ),
         padding_x="2em",
         padding_y="1em",
@@ -331,8 +348,8 @@ def prompts_page() -> rx.Component:
         rx.box(
             content,
             id=PROMPTS_CONTAINER_ID,
-            overflow_y="auto", 
-            height="calc(100vh - 70px)", # Ajusta este valor si es necesario
+            overflow_y="auto",
+            height="calc(100vh - 70px)",  # Ajusta este valor si es necesario
             # Ahora llamamos a las funciones que heredamos de ScrollState a través de nuestra clase PromptsState
             on_scroll=rx.call_script(
                 f"document.getElementById('{PROMPTS_CONTAINER_ID}').scrollTop",
