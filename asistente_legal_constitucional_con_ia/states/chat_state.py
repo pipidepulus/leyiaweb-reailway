@@ -11,6 +11,7 @@ import reflex as rx
 from dotenv import load_dotenv
 from openai import APIError, OpenAI
 from pdf2image import convert_from_bytes
+import reflex_clerk_api as clerk 
 
 from asistente_legal_constitucional_con_ia.services.token_counter import (
     count_text_tokens,
@@ -340,8 +341,10 @@ class ChatState(rx.State):
         filename = next((f["filename"] for f in self.file_info_list if f["file_id"] == file_id), "archivo")
         try:
             await asyncio.to_thread(client.files.delete, file_id)
-            self.file_info_list = [f for f in self.file_info_list if f["file_id"] != file_id]
-            self.session_files = [f for f in self.session_files if f["file_id"] != file_id]
+            # FIX: en eventos background, modificar estado dentro de `async with self:`
+            async with self:
+                self.file_info_list = [f for f in self.file_info_list if f["file_id"] != file_id]
+                self.session_files = [f for f in self.session_files if f["file_id"] != file_id]
             yield rx.toast.success(f"'{filename}' eliminado.")
         except APIError as e:
             yield rx.toast.error(f"Error eliminando '{filename}': {getattr(e, 'message', str(e))}")
@@ -849,26 +852,14 @@ class ChatState(rx.State):
 
         try:
             title_to_use = self.notebook_title.strip()
-            notebook_content = self._convert_chat_to_notebook(self.messages, title_to_use)
+            from ..states.notebook_state import NotebookState  # evitar import circular
 
-            with rx.session() as session:
-                import json as _json
+            # Delegar: usa Clerk y guarda con el owner correcto
+            yield NotebookState.create_notebook_from_chat(title_to_use, self.messages)
 
-                from ..models.database import Notebook
-
-                new_notebook = Notebook(
-                    title=title_to_use,
-                    content=_json.dumps(notebook_content),
-                    notebook_type="analysis",
-                    workspace_id="public",
-                )
-                session.add(new_notebook)
-                session.commit()
-
+            # Cierra el diálogo y limpia
             self.show_notebook_dialog = False
             self.notebook_title = ""
-            yield rx.toast.success(f"Notebook '{title_to_use}' creado exitosamente.")
-
         except Exception as e:
             yield rx.toast.error(f"Error creando notebook: {str(e)}")
 

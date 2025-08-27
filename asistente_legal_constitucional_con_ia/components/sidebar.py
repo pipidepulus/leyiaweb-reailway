@@ -13,7 +13,12 @@ class SidebarState(rx.State):
     @rx.var
     def is_on_asistente_page(self) -> bool:
         """Comprueba si la ruta actual es la página del asistente."""
-        return self.router.page.path == "/asistente"
+        # RouterData.page is deprecated in Reflex >=0.8.1; prefer router.url
+        current_path = getattr(self.router, "url", None)
+        if current_path is None:
+            # fallback for older versions
+            return self.router.page.path == "/asistente"
+        return current_path.path == "/asistente"
 
 
 def sidebar(is_in_drawer: bool = False) -> rx.Component:

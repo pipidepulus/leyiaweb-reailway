@@ -94,7 +94,8 @@ def main_layout(content: rx.Component, use_container: bool = True) -> rx.Compone
                 # Contenido principal
                 content_wrapper(
                     content,
-                    padding_top=["4rem", "4rem", "1em", "1em"],
+                    # Aumenta padding-top en escritorio para no solapar el header
+                    padding_top=["4rem", "4rem", "4rem", "4rem"],
                     padding_x=["1em", "1em", "2em", "2em"],
                     flex_grow=1,
                     max_height="100vh",

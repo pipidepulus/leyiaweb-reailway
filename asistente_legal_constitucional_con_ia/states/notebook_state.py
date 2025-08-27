@@ -3,6 +3,7 @@
 
 import dataclasses
 import json
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -53,6 +54,23 @@ class NotebookState(rx.State):
             print(f"DEBUG: ClerkState no disponible o error leyendo user_id: {e}")
             return "public"
 
+    async def _get_workspace_id_with_retry(self, retries: int = 10, delay_seconds: float = 0.1) -> str:
+        """Espera brevemente a que Clerk provea user_id para evitar cargar 'public'."""
+        try:
+            import asyncio
+        except Exception:
+            asyncio = None  # type: ignore
+
+        for i in range(max(1, retries)):
+            ws = await self.get_user_workspace_id()
+            if ws != "public":
+                return ws
+            # Si no hay asyncio (muy improbable), rompe el bucle
+            if asyncio is None:
+                break
+            await asyncio.sleep(delay_seconds)
+        return "public"
+
     def set_edit_content(self, value: str):
         """Actualiza el contenido en edición."""
         self.edit_content = value
@@ -78,8 +96,10 @@ class NotebookState(rx.State):
         try:
             notebook_content = self._convert_chat_to_notebook(chat_messages, title)
             workspace_id = await self.get_user_workspace_id()
+            print(f"DEBUG create_notebook_from_chat workspace_id={workspace_id}")
 
             with rx.session() as session:
+                from ..models.database import Notebook
                 new_notebook = Notebook(
                     title=title,
                     content=json.dumps(notebook_content),
@@ -119,7 +139,8 @@ class NotebookState(rx.State):
 
         try:
             self.loading = True
-            workspace_id = await self.get_user_workspace_id()
+            # Evita que el primer render cargue con 'public' si Clerk aún no está listo
+            workspace_id = await self._get_workspace_id_with_retry()
 
             with rx.session() as session:
                 db_notebooks = session.exec(Notebook.select().where(Notebook.workspace_id == workspace_id).order_by(Notebook.updated_at.desc())).all()
@@ -250,17 +271,73 @@ class NotebookState(rx.State):
         obteniendo el ID de la URL.
         """
         try:
-            # Obtener el notebook_id desde el estado del router
-            notebook_id = self.router.page.params.get("notebook_id")
+            url = getattr(self.router, "url", None)
+            if not url:
+                self.error_message = "Router URL no disponible."
+                yield rx.toast.error(self.error_message)
+                return
+
+            notebook_id = None
+
+            # 1) Intentar desde url.params (si tu versión de Reflex lo provee)
+            params = getattr(url, "params", None)
+            if isinstance(params, dict):
+                notebook_id = params.get("notebook_id") or params.get("id")
+
+            # 2) Si no, parsear el querystring manualmente
+            if not notebook_id:
+                search = getattr(url, "search", "") or getattr(url, "query", "")
+                if isinstance(search, str) and search.startswith("?"):
+                    from urllib.parse import parse_qs
+                    qs = parse_qs(search[1:])
+                    notebook_id = (qs.get("notebook_id", [None])[0]) or (qs.get("id", [None])[0])
+
+            # 3) Intentar desde el hash (#notebook_id=...)
+            if not notebook_id:
+                hash_part = getattr(url, "hash", "") or getattr(url, "fragment", "")
+                if isinstance(hash_part, str) and hash_part.startswith("#"):
+                    from urllib.parse import parse_qs
+                    qs = parse_qs(hash_part[1:])
+                    notebook_id = (qs.get("notebook_id", [None])[0]) or (qs.get("id", [None])[0])
+
+            # 4) Extraer desde el path dinámico /notebooks/123
+            if not notebook_id:
+                pathname = getattr(url, "pathname", None) or getattr(url, "path", None) or getattr(url, "href", None)
+                if isinstance(pathname, str):
+                    # Caso preferente: /notebooks/<id>
+                    m = re.search(r"/notebooks/(\d+)(?:/)?$", pathname)
+                    if m:
+                        notebook_id = m.group(1)
+                    else:
+                        # Fallback: últimos dígitos en el path
+                        m2 = re.search(r"(\d+)(?:/*)?$", pathname)
+                        if m2:
+                            notebook_id = m2.group(1)
+
+            # 5) Fallback final (compat): usar router.page si existe
+            if not notebook_id:
+                page = getattr(self.router, "page", None)
+                if page is not None:
+                    try:
+                        page_params = getattr(page, "params", None)
+                        if isinstance(page_params, dict):
+                            notebook_id = page_params.get("notebook_id") or page_params.get("id")
+                        if not notebook_id:
+                            page_path = getattr(page, "path", "")
+                            if isinstance(page_path, str):
+                                m3 = re.search(r"/notebooks/(\d+)(?:/)?$", page_path)
+                                if m3:
+                                    notebook_id = m3.group(1)
+                    except Exception:
+                        pass
 
             if notebook_id:
                 try:
-                    self.current_notebook_id = int(notebook_id)
-
+                    self.current_notebook_id = int(str(notebook_id).strip())
+                    print(f"DEBUG load_notebook_on_page_load url={getattr(url, 'path', getattr(url, 'pathname', ''))} extracted_id={self.current_notebook_id}")
                     success = await self._set_current_notebook_internal(self.current_notebook_id)
                     if not success:
                         yield rx.toast.error(self.error_message)
-
                 except (ValueError, TypeError) as e:
                     self.error_message = f"ID de notebook inválido: {str(e)}"
                     yield rx.toast.error(self.error_message)

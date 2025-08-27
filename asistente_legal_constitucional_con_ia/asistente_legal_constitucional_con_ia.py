@@ -59,13 +59,26 @@ def index() -> rx.Component:
     # Contenido para usuarios NO autenticados (actual)
     unauthenticated_content = rx.center(
         rx.vstack(
-            rx.image(
-                src="/balanza.png",
+            rx.box(
+                # Contenedor fijo y sin recortes para el ícono
+                rx.image(
+                    src="/balanza.png",
+                    width="100%",
+                    height="100%",
+                    object_fit="contain",
+                    object_position="center",
+                    margin="0",
+                    display="block",
+                ),
                 width="80px",
                 height="80px",
                 margin_bottom="1rem",
-                object_fit="contain",
-                border_radius="8px",
+                # Padding mínimo para evitar que el borde visual "toque" el canvas del PNG
+                padding="2px",
+                overflow="visible",
+                display="flex",
+                align_items="center",
+                justify_content="center",
                 margin_x="auto",
             ),
             rx.heading(
@@ -119,18 +132,30 @@ def index() -> rx.Component:
             spacing="3",
             on_mount=ChatState.limpiar_chat,
         ),
-        height="80vh",
+        min_height="80vh",
+         width="100%",
     )
 
     # Contenido para usuarios autenticados (con sidebar)
     authenticated_content = rx.flex(
-        rx.image(
-            src="/balanza.png",
+        rx.box(
+            rx.image(
+                src="/balanza.png",
+                width="100%",
+                height="100%",
+                object_fit="contain",
+                object_position="center",
+                margin="0",
+                display="block",
+            ),
             width="120px",
             height="120px",
             margin_bottom="1.5rem",
-            object_fit="contain",
-            border_radius="8px",
+            padding="3px",
+            overflow="visible",
+            display="flex",
+            align_items="center",
+            justify_content="center",
         ),
         rx.heading("¡Bienvenido!", size="7", color="blue", text_align="center", margin_bottom="1rem"),
         rx.text("Selecciona una herramienta del menú lateral para comenzar.", size="4", text_align="center", color="gray", margin_bottom="2rem"),
