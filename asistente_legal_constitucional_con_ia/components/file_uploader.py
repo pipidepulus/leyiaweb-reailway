@@ -24,7 +24,7 @@ def file_uploader() -> rx.Component:
 
     return rx.vstack(
         rx.text(
-            "Soportados: PDF, DOCX, TXT (hasta 30 pág. escaneadas)",
+            "Soportados: PDF, DOCX, TXT (Solo Archivos Digitales)",
             size="2",
             color=INFO_TEXT_COLOR,
             weight="medium",

@@ -259,6 +259,11 @@ class ChatState(rx.State):
                 extracted_text = extract_text_from_bytes(upload_data, file.name, skip_ocr=True)
 
                 if file.name.lower().endswith(".pdf") and (not extracted_text or len(extracted_text.strip()) < 100):
+                     # Cambio: no hacer OCR; informar al usuario y saltar este archivo
+                    self.upload_error = f"El archivo '{file.name}' es escaneado o no contiene texto seleccionable."
+                    logger.warning(self.upload_error)
+                    yield rx.toast.warning("El archivo es escaneado, sube un archivo digital.")
+                    continue
 
                     self.uploading = False
                     yield
