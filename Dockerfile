@@ -33,10 +33,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiamos el código de la aplicación.
 COPY . .
 
-# Crear directorios usados en runtime (uploads) y usuario no root.
-RUN mkdir -p /app/uploads && \
-    groupadd -r app && useradd -r -g app appuser && \
-    chown -R appuser:app /app
+# Crear usuario no root con home real y preparar rutas que Reflex intenta usar (~/.local/share/reflex)
+RUN groupadd -r app && useradd -r -g app -d /home/appuser -m appuser && \
+    mkdir -p /app/uploads /home/appuser/.local/share/reflex && \
+    chown -R appuser:app /app /home/appuser
+
+# Variables de entorno para que Reflex no intente escribir fuera del home o sin permisos
+ENV HOME=/home/appuser \
+    REFLEX_DIR=/home/appuser/.local/share/reflex
 
 USER appuser
 
