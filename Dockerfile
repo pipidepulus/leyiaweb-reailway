@@ -45,5 +45,8 @@ EXPOSE 8000
 # Healthcheck simple sobre la raíz (Reflex sirve /).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD curl -f http://localhost:${PORT}/ || exit 1
 
-# Script de arranque (incluye migraciones). Se copia/crea en la build.
-CMD ["./start.sh"]
+# Arranque directo de Reflex (sin script intermedio ni migraciones automáticas).
+# Si necesitas aplicar migraciones en el Postgres remoto:
+#   1. Abre shell en el servicio (Render) y ejecuta: alembic upgrade head
+#   2. O agrega una etapa manual antes de este comando.
+CMD ["sh", "-c", "reflex run --env prod --backend-host 0.0.0.0 --backend-port ${PORT:-8000}"]
