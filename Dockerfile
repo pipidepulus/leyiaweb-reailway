@@ -1,34 +1,44 @@
-# Dockerfile.backend
+## Dockerfile para despliegue en Render (Full Reflex + Postgres)
+## Mejores prácticas aplicadas: imagen slim, instalación mínima, usuario no root,
+## migraciones automáticas Alembic, healthcheck y servidor Reflex completo.
 
-# Usa una imagen base oficial de Python.
-FROM python:3.12-slim
+FROM python:3.12-slim AS base
 
 ARG CACHE_BUSTER=1
 
-
-# Establece variables de entorno para un comportamiento óptimo de Python en Docker.
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    REFLEX_ENV=prod \
+    PORT=8000
 
 WORKDIR /app
 
-# Copia el archivo de requerimientos primero para aprovechar el cache de Docker.
-COPY requirements.txt .
+# Dependencias del sistema (OCR/pdf + utilidades). Añadimos curl para healthcheck y descargas.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl unzip tesseract-ocr tesseract-ocr-spa poppler-utils \
+  && rm -rf /var/lib/apt/lists/*
 
-# Instala las dependencias del proyecto.
-# Añadimos 'unzip' por si reflex lo necesita internamente.
-RUN apt-get update && apt-get install -y unzip tesseract-ocr tesseract-ocr-spa poppler-utils && rm -rf /var/lib/apt/lists/* && \
+# Copiamos requerimientos primero para aprovechar cache de capas.
+COPY requirements.txt ./
+
+# (Opcional) upgrade de pip para evitar warnings de build.
+RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copia el resto del código de tu aplicación al directorio de trabajo.
+# Copiamos el código de la aplicación.
 COPY . .
 
-# Expone el puerto que usará el backend. Render lo mapeará automáticamente.
-# Render te dará una variable de entorno $PORT, que usaremos en el CMD.
+# Crear directorios usados en runtime (uploads) y usuario no root.
+RUN mkdir -p /app/uploads && \
+    groupadd -r app && useradd -r -g app appuser && \
+    chown -R appuser:app /app
+
+USER appuser
+
 EXPOSE 8000
 
-# El comando para iniciar SOLAMENTE el backend.
-# - Se enlaza a 0.0.0.0 para ser accesible desde fuera del contenedor.
-# - Usa la variable $PORT que Render provee.
-# - --no-frontend evita que intente iniciar el servidor de Node.js.
-CMD ["sh", "-c", "exec reflex run --env prod --backend-only --backend-host 0.0.0.0 --backend-port ${PORT}"]
+# Healthcheck simple sobre la raíz (Reflex sirve /).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD curl -f http://localhost:${PORT}/ || exit 1
+
+# Script de arranque (incluye migraciones). Se copia/crea en la build.
+CMD ["./start.sh"]
