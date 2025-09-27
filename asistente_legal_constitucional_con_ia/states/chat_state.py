@@ -11,7 +11,6 @@ import reflex as rx
 from dotenv import load_dotenv
 from openai import APIError, OpenAI
 from pdf2image import convert_from_bytes
-import reflex_clerk_api as clerk 
 
 from asistente_legal_constitucional_con_ia.services.token_counter import (
     count_text_tokens,
@@ -161,6 +160,11 @@ class ChatState(rx.State):
             }, 200);
             """
         )
+
+    # Setter explícito para notebook_title para evitar dependencia de state_auto_setters
+    @rx.event
+    def set_notebook_title(self, value: str):
+        self.notebook_title = value
 
     @rx.event
     def set_current_question(self, value: str):
@@ -859,7 +863,7 @@ class ChatState(rx.State):
             title_to_use = self.notebook_title.strip()
             from ..states.notebook_state import NotebookState  # evitar import circular
 
-            # Delegar: usa Clerk y guarda con el owner correcto
+            # Delegar: usar auth local y guardar con el owner correcto
             yield NotebookState.create_notebook_from_chat(title_to_use, self.messages)
 
             # Cierra el diálogo y limpia

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 import assemblyai
 import reflex as rx
-import reflex_clerk_api as clerk
+from ..auth_config import lauth
 from dotenv import load_dotenv
 
 from ..models.database import AudioTranscription, Notebook
@@ -42,13 +42,30 @@ class TranscriptionState(rx.State):
     uploaded_files: list[str] = []
 
     async def get_user_workspace_id(self) -> str:
-        """Obtiene el workspace ID del usuario autenticado usando Clerk API."""
+        """Obtiene el workspace ID del usuario autenticado usando auth local."""
         try:
-            clerk_state = await self.get_state(clerk.ClerkState)
-            user_id = getattr(clerk_state, "user_id", None) or getattr(clerk_state, "userId", None)
-            return str(user_id) if user_id else "public"
+            auth_state = await self.get_state(lauth.LocalAuthState)  # type: ignore[attr-defined]
+            user = getattr(auth_state, "authenticated_user", None)
+            if user is not None:
+                for k in ("id", "user_id", "username", "email"):
+                    v = None
+                    try:
+                        v = user.get(k) if hasattr(user, "get") else getattr(user, k, None)
+                    except Exception:
+                        v = None
+                    if v:
+                        return str(v)
+            for v in (
+                getattr(auth_state, "user_id", None),
+                getattr(auth_state, "id", None),
+                getattr(auth_state, "username", None),
+                getattr(auth_state, "email", None),
+            ):
+                if v:
+                    return str(v)
+            return "public"
         except Exception as e:
-            print(f"DEBUG: ClerkState no disponible o error leyendo user_id: {e}")
+            print(f"DEBUG: AuthState no disponible o error leyendo user_id: {e}")
             return "public"
 
     @rx.event

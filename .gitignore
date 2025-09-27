@@ -1,43 +1,32 @@
 assets/external/
+
+# Python bytecode y cachés
 *.py[cod]
-# Entorno virtual
+__pycache__/
+
+# Entornos virtuales
 .venv/
 venv/
-
-# Entorno virtual adicional
 env/
 ENV/
 env.bak/
 venv.bak/
 
-# Archivos de secretos
+# Secretos
 .env
 
-# Archivos subidos por los usuarios
+# Subidas de usuario
 uploaded_files/
 
-# Archivos de base de datos de Reflex
+# Bases de datos locales (Reflex/SQLite)
 *.db
 
-# Archivos compilados de Python
-__pycache__/
-*.pyc
-
+# Directorios internos de Reflex/runtime
 .states
 .web
+.reflex/
 
-rxconfig1.py
-
-system_prompt_V1.txt
-
-/asistente_legal_constitucional_con_ia/components/file_uploader1.py
-
-/asistente_legal_constitucional_con_ia/states/chat_state1.py
-
-
-/asistente_legal_constitucional_con_ia/states/upload_state1.py
-
-# IDEs
+# IDEs/editores
 .vscode/
 .idea/
 *.swp
@@ -56,12 +45,28 @@ Thumbs.db
 # Logs
 *.log
 
-# Node modules
+# Node
 node_modules/
 
-# Temporary files
+# Temporales
 *.tmp
 *.temp
+
+# Archived/unused files
+unused/
+
+# Empaquetado/Build de Python
+build/
+dist/
+*.egg-info/
+
+# Cachés de herramientas (añadir si aplican)
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
 
 
 

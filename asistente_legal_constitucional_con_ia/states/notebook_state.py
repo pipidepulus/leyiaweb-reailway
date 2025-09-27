@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import reflex as rx
-import reflex_clerk_api as clerk
+from ..auth_config import lauth
 
 from ..models.database import Notebook
 
@@ -40,22 +40,38 @@ class NotebookState(rx.State):
     edit_content: str = ""
 
     async def get_user_workspace_id(self) -> str:
-        """Obtiene el workspace ID del usuario autenticado usando Clerk API."""
+        """Obtiene el workspace ID del usuario autenticado usando auth local."""
         try:
-            clerk_state = await self.get_state(clerk.ClerkState)
-            # Compatibilidad con posibles nombres de atributo en ClerkState
-            user_id = getattr(clerk_state, "user_id", None)
-            if not user_id:
-                user_id = getattr(clerk_state, "userId", None)
-            if user_id:
-                return str(user_id)
+            auth_state = await self.get_state(lauth.LocalAuthState)  # type: ignore[attr-defined]
+            # Tolerancia a nombres de atributo
+            user = getattr(auth_state, "authenticated_user", None)
+            # Si el paquete no expone `authenticated_user`, intenta leer id directos
+            candidates = [
+                getattr(auth_state, "user_id", None),
+                getattr(auth_state, "id", None),
+                getattr(auth_state, "username", None),
+                getattr(auth_state, "email", None),
+            ]
+            if user is not None:
+                # Intentar id en objetos/Dict
+                for k in ("id", "user_id", "username", "email"):
+                    v = None
+                    try:
+                        v = user.get(k) if hasattr(user, "get") else getattr(user, k, None)
+                    except Exception:
+                        v = None
+                    if v:
+                        return str(v)
+            for v in candidates:
+                if v:
+                    return str(v)
             return "public"
         except Exception as e:
-            print(f"DEBUG: ClerkState no disponible o error leyendo user_id: {e}")
+            print(f"DEBUG: AuthState no disponible o error leyendo user_id: {e}")
             return "public"
 
     async def _get_workspace_id_with_retry(self, retries: int = 10, delay_seconds: float = 0.1) -> str:
-        """Espera brevemente a que Clerk provea user_id para evitar cargar 'public'."""
+        """Espera brevemente a que el estado de auth provea user_id para evitar 'public'."""
         try:
             import asyncio
         except Exception:
@@ -139,7 +155,7 @@ class NotebookState(rx.State):
 
         try:
             self.loading = True
-            # Evita que el primer render cargue con 'public' si Clerk aún no está listo
+            # Evita que el primer render cargue con 'public' si auth aún no está listo
             workspace_id = await self._get_workspace_id_with_retry()
 
             with rx.session() as session:

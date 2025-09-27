@@ -1,7 +1,7 @@
 # asistente_legal_constitucional_con_ia/components/layout.py
 """Layout principal de la aplicación, ahora totalmente responsivo y sin rx.drawer."""
 import reflex as rx
-import reflex_clerk_api as clerk
+from ..auth_config import lauth
 
 from ..states.app_state import AppState
 from .sidebar import sidebar
@@ -17,8 +17,18 @@ def main_layout(content: rx.Component, use_container: bool = True) -> rx.Compone
         rx.box(
             rx.hstack(
                 rx.icon(tag="menu", size=32, on_click=AppState.toggle_drawer, cursor="pointer", color="var(--blue-9)"),
-                # ✅ AÑADIR: Botón de usuario de Clerk en móvil
-                clerk.user_button(),
+                # ✅ AÑADIR: Botón/acciones de usuario (auth local) en móvil
+                rx.cond(
+                    lauth.LocalAuthState.is_authenticated,  # type: ignore[attr-defined]
+                    rx.hstack(
+                        rx.text("Conectado", size="2", color="gray"),
+                        rx.button("Salir", size="2", variant="soft", on_click=lauth.LocalAuthState.do_logout),  # type: ignore[attr-defined]
+                    ),
+                    rx.hstack(
+                        rx.link(rx.button("Login", size="2"), href="/login"),
+                        rx.link(rx.button("Registro", size="2", variant="outline"), href="/register"),
+                    ),
+                ),
                 justify="between",
                 align="center",
                 width="100%",
@@ -79,10 +89,20 @@ def main_layout(content: rx.Component, use_container: bool = True) -> rx.Compone
             ),
             # CONTENEDOR DEL CONTENIDO DE LA PÁGINA
             rx.vstack(
-                # ✅ AÑADIR: Header con usuario para escritorio
+                # ✅ AÑADIR: Header con usuario para escritorio (auth local)
                 rx.hstack(
                     rx.spacer(),
-                    clerk.user_button(),
+                    rx.cond(
+                        lauth.LocalAuthState.is_authenticated,  # type: ignore[attr-defined]
+                        rx.hstack(
+                            rx.text("Conectado", size="2", color="gray"),
+                            rx.button("Salir", size="2", variant="soft", on_click=lauth.LocalAuthState.do_logout),  # type: ignore[attr-defined]
+                        ),
+                        rx.hstack(
+                            rx.link(rx.button("Login", size="2"), href="/login"),
+                            rx.link(rx.button("Registro", size="2", variant="outline"), href="/register"),
+                        ),
+                    ),
                     justify="end",
                     align="center",
                     padding="1rem",

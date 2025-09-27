@@ -4,7 +4,7 @@ Archivo principal de la aplicación.
 """
 import os
 import reflex as rx
-import reflex_clerk_api as clerk
+from .auth_config import lauth
 from dotenv import load_dotenv
 
 from asistente_legal_constitucional_con_ia.states.chat_state import ChatState
@@ -15,6 +15,7 @@ from .pages.notebooks_page import notebook_viewer_page, notebooks_page
 from .pages.prompts_page import prompts_page
 from .pages.proyectos_page import ProyectosState, proyectos_page
 from .pages.transcription_page import transcription_page
+from .auth_config import lauth
 
 # from asistente_legal_constitucional_con_ia.models.database import Notebook, AudioTranscription (Bajo OJO)
 
@@ -49,12 +50,12 @@ def public_layout(content: rx.Component) -> rx.Component:
     )
 
 
-# ✅ MODIFICAR: Página principal con Clerk Provider
+# ✅ MODIFICAR: Página principal con autenticación local
 
 
 @rx.page(route="/", title="Inicio")
 def index() -> rx.Component:
-    """Página principal que maneja autenticación con Clerk."""
+    """Página principal que maneja autenticación local."""
 
     # Contenido para usuarios NO autenticados (actual)
     unauthenticated_content = rx.center(
@@ -97,7 +98,7 @@ def index() -> rx.Component:
                 margin_bottom="0.8rem",
                 text_align="center",
             ),
-            # ✅ MODIFICAR: Card de autenticación con botones de Clerk
+            # ✅ MODIFICAR: Card de autenticación con botones de auth local
             rx.card(
                 rx.vstack(
                     rx.heading("🔐 Acceso Protegido", size="5", color="orange", text_align="center"),
@@ -113,10 +114,10 @@ def index() -> rx.Component:
                         align="start",
                         margin_bottom="1.5rem",
                     ),
-                    # ✅ CAMBIO: Reemplazar botón normal con botones de Clerk
+                    # ✅ CAMBIO: Enlaces a páginas de login/registro (auth local)
                     rx.hstack(
-                        clerk.sign_in_button(rx.button("💎 Comenzar", size="4", color_scheme="blue")),
-                        clerk.sign_up_button(rx.button("Crear Cuenta", size="4", variant="outline")),
+                        rx.link(rx.button("💎 Comenzar", size="4", color_scheme="blue"), href="/login"),
+                        rx.link(rx.button("Crear Cuenta", size="4", variant="outline"), href="/register"),
                         spacing="4",
                         justify="center",
                     ),
@@ -175,25 +176,13 @@ def index() -> rx.Component:
         margin_x="auto",
     )
 
-    # ✅ CAMBIO: Asegurar que SIEMPRE uses use_container=False
-    return clerk.clerk_provider(
-        clerk.clerk_loading(
-            # Pantalla de carga
-            rx.center(rx.vstack(rx.spinner(size="3", color="blue.500"), rx.text("Cargando...", size="3", color="gray.600"), spacing="4", align="center"), min_height="100vh")
-        ),
-        clerk.clerk_loaded(
-            clerk.signed_in(
-                # Usuario autenticado: usar layout sin container
-                main_layout(authenticated_content, use_container=False)
-            ),
-            clerk.signed_out(
-                # Usuario NO autenticado: mostrar landing sin sidebar
-                public_layout(unauthenticated_content)
-            ),
-        ),
-        publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
-        secret_key=os.environ.get("CLERK_SECRET_KEY"),
-        register_user_state=True,
+    # Con auth local, usamos un condicional simple sobre el estado de autenticación
+    return rx.cond(
+        lauth.LocalAuthState.is_authenticated,  # type: ignore[attr-defined]
+        # Usuario autenticado: usar layout sin container
+        main_layout(authenticated_content, use_container=False),
+        # Usuario NO autenticado: mostrar landing sin sidebar
+        public_layout(unauthenticated_content),
     )
 
 
@@ -201,53 +190,21 @@ def create_protected_page(page_func, title: str):
     """Crea una página protegida sin decorador @rx.page."""
 
     def protected_page_component() -> rx.Component:
-        return clerk.clerk_provider(
-            clerk.clerk_loading(
-                rx.center(
-                    rx.vstack(
-                        rx.image(
-                            src="/balanza.png",
-                            width="50px",
-                            height="50px",
-                            margin_bottom="1rem",
-                            object_fit="contain",
-                            margin_x="auto",
-                        ),
-                        rx.spinner(size="3"),
-                        rx.text("Cargando...", size="3", color="gray.600"),
-                        spacing="4",
-                        align="center",
-                    ),
-                    min_height="100vh",
-                )
-            ),
-            clerk.clerk_loaded(
-                # Las páginas ya aplican main_layout internamente; no envolver de nuevo
-                clerk.signed_in(page_func()),
-                clerk.signed_out(
-                    rx.center(
-                        rx.vstack(
-                            rx.image(
-                                src="/balanza.png",
-                                width="80px",
-                                height="80px",
-                                margin_bottom="1rem",
-                                object_fit="contain",
-                                margin_x="auto",
-                            ),
-                            rx.heading("Acceso Restringido", size="6"),
-                            rx.text("Debes iniciar sesión para acceder a esta página."),
-                            clerk.sign_in_button(rx.button("Iniciar Sesión", color_scheme="blue")),
-                            spacing="4",
-                            align="center",
-                        ),
-                        min_height="100vh",
-                    )
+        # Con auth local protegemos por estado
+        return rx.cond(
+            lauth.LocalAuthState.is_authenticated,  # type: ignore[attr-defined]
+            page_func(),
+            rx.center(
+                rx.vstack(
+                    rx.image(src="/balanza.png", width="80px", height="80px", margin_bottom="1rem", object_fit="contain", margin_x="auto"),
+                    rx.heading("Acceso Restringido", size="6"),
+                    rx.text("Debes iniciar sesión para acceder a esta página."),
+                    rx.link(rx.button("Iniciar Sesión", color_scheme="blue"), href="/login"),
+                    spacing="4",
+                    align="center",
                 ),
+                min_height="100vh",
             ),
-            publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY"),
-            secret_key=os.environ.get("CLERK_SECRET_KEY"),
-            register_user_state=True,
         )
 
     return protected_page_component
@@ -265,3 +222,10 @@ app.add_page(create_protected_page(notebooks_page, "Mis Notebooks"), route="/not
 app.add_page(create_protected_page(lambda: notebook_viewer_page(), "Ver Notebook"), route="/notebooks/[notebook_id]", title="Ver Notebook")
 
 app.add_page(create_protected_page(transcription_page, "Transcripción de Audio"), route="/transcription", title="Transcripción de Audio")
+
+# Rutas de autenticación local (páginas provistas por el paquete)
+try:
+    app.add_page(lauth.pages.login_page, route="/login", title="Iniciar Sesión")  # type: ignore[attr-defined]
+    app.add_page(lauth.pages.register_page, route="/register", title="Crear Cuenta")  # type: ignore[attr-defined]
+except Exception:
+    pass
