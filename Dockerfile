@@ -13,17 +13,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Dependencias del sistema (OCR/pdf + utilidades). Añadimos curl para healthcheck y descargas.
+# Dependencias del sistema (OCR/pdf + utilidades) + toolchain de compilación para wheels que requieran build
+# Añadimos librerías nativas típicas para Pillow (jpeg, zlib, tiff, webp, openjp2), lxml (libxml2/libxslt) y psycopg2 (libpq).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl unzip tesseract-ocr tesseract-ocr-spa poppler-utils \
-  && rm -rf /var/lib/apt/lists/*
+        curl unzip tesseract-ocr tesseract-ocr-spa poppler-utils \
+        build-essential gcc g++ libpq-dev \
+        libjpeg62-turbo-dev zlib1g-dev libopenjp2-7-dev libtiff5-dev libwebp-dev \
+        libxml2-dev libxslt1-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copiamos requerimientos primero para aprovechar cache de capas.
 COPY requirements.txt ./
 
 # (Opcional) upgrade de pip para evitar warnings de build.
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip cache purge || true
 
 # Copiamos el código de la aplicación.
 COPY . .
