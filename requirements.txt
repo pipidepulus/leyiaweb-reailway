@@ -52,7 +52,7 @@ pytz==2025.2
 redis==6.2.0
 reflex==0.8.11
 reflex-local-auth==0.1.0
-reflex-hosting-cli==0.1.54
+# Removed reflex-hosting-cli (solo necesario para hosting oficial de Reflex y causa conflictos de dependencias en despliegue Render)
 regex==2024.11.6
 requests==2.32.4
 rich==14.0.0
