@@ -6,11 +6,9 @@ import tempfile
 import time
 from typing import Any, Dict, List, Optional, TypedDict
 
-import pytesseract
 import reflex as rx
 from dotenv import load_dotenv
 from openai import APIError, OpenAI
-from pdf2image import convert_from_bytes
 
 from asistente_legal_constitucional_con_ia.services.token_counter import (
     count_text_tokens,
@@ -91,7 +89,7 @@ class ChatState(rx.State):
     processing: bool = False
     uploading: bool = False
     upload_progress: int = 0
-    ocr_progress: str = ""
+    ocr_progress: str = ""  # (OCR removido)
     proyectos_recientes_df: str = ""
     assistant_id: str = os.getenv("ASSISTANT_ID_CONSTITUCIONAL", "")
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
@@ -117,7 +115,7 @@ class ChatState(rx.State):
     max_chat_messages: int = 80  # conservar últimas 80 entradas en UI
     stream_min_chars: int = 120  # umbral de chars para actualizar streaming_response
     stream_min_interval_s: float = 0.15  # tiempo mínimo entre updates
-    ocr_max_pages: int = 100  # limitar OCR para PDFs gigantes
+    ocr_max_pages: int = 0  # OCR deshabilitado
 
     model_name: str = ""
     last_prompt_tokens: int = 0
@@ -128,6 +126,8 @@ class ChatState(rx.State):
     total_tokens: int = 0
     cost_usd: float = 0.0
     approx_output_tokens: int = 0
+    # OCR completamente deshabilitado (removido). Mantener flag por compatibilidad si alguien la consulta.
+    enable_ocr: bool = False
 
     @staticmethod
     def get_client(api_key: str):
@@ -193,41 +193,7 @@ class ChatState(rx.State):
         except json.JSONDecodeError:
             return []
 
-    async def _perform_ocr_with_progress(self, upload_data: bytes, file_name: str):
-        async with self:
-            self.is_performing_ocr = True
-            self.ocr_progress = f"Iniciando OCR en '{file_name}'..."
-        yield
-
-        ocr_text_parts: list[str] = []
-        try:
-            images = await asyncio.to_thread(convert_from_bytes, upload_data, dpi=200)
-            total_pages = len(images)
-            pages_to_process = min(total_pages, self.ocr_max_pages)
-
-            for page_num, image in enumerate(images[:pages_to_process]):
-                async with self:
-                    self.ocr_progress = f"OCR: Pág {page_num + 1}/{pages_to_process} de '{file_name}'"
-                yield
-
-                text = await asyncio.to_thread(pytesseract.image_to_string, image, lang="spa+eng")
-                ocr_text_parts.append(text)
-
-            if total_pages > self.ocr_max_pages:
-                ocr_text_parts.append(f"\n[Nota: OCR truncado a {self.ocr_max_pages} páginas de {total_pages} por límite de rendimiento]")
-
-        except Exception as e:
-            logger.error(f"Error durante el OCR: {e}")
-            async with self:
-                self.upload_error = f"Error de OCR en '{file_name}': {e}"
-            ocr_text_parts = []
-        finally:
-            async with self:
-                self.is_performing_ocr = False
-                self.ocr_progress = ""
-            yield
-
-        yield "\n".join(ocr_text_parts)
+    # _perform_ocr_with_progress eliminado (OCR deshabilitado)
 
     @rx.event
     async def handle_upload(self, files: list[rx.UploadFile]):
@@ -260,31 +226,15 @@ class ChatState(rx.State):
             try:
                 logger.info(f"Procesando archivo: {file.name}")
                 upload_data = await file.read()
+                # Primera pasada: extracción directa SIN OCR para PDFs (skip_ocr=True)
                 extracted_text = extract_text_from_bytes(upload_data, file.name, skip_ocr=True)
 
+                # Si es PDF y el texto es insuficiente, rechazar (OCR deshabilitado)
                 if file.name.lower().endswith(".pdf") and (not extracted_text or len(extracted_text.strip()) < 100):
-                     # Cambio: no hacer OCR; informar al usuario y saltar este archivo
-                    self.upload_error = f"El archivo '{file.name}' es escaneado o no contiene texto seleccionable."
+                    self.upload_error = f"El archivo '{file.name}' parece escaneado o sin texto digital. (OCR deshabilitado)"
                     logger.warning(self.upload_error)
-                    yield rx.toast.warning("El archivo es escaneado, sube un archivo digital.")
+                    yield rx.toast.warning("PDF escaneado sin texto. Sube un PDF con texto seleccionable.")
                     continue
-
-                    self.uploading = False
-                    yield
-
-                    ocr_result_generator = self._perform_ocr_with_progress(upload_data, file.name)
-                    extracted_text = ""
-                    async for result in ocr_result_generator:
-                        if isinstance(result, str):
-                            extracted_text = result
-                        yield
-
-                    self.uploading = True
-                    yield
-
-                    if not extracted_text or not extracted_text.strip():
-                        yield rx.toast.error(f"Falló el OCR para '{file.name}'")
-                        continue
 
                 if not extracted_text or not extracted_text.strip():
                     self.upload_error = f"No se pudo extraer texto de '{file.name}'."

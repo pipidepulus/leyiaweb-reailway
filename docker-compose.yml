@@ -1,0 +1,74 @@
+﻿# docker-compose para entorno local de LeyIA / Reflex
+# Objetivos:
+#  - Postgres persistente
+#  - App Reflex (backend 8000 / frontend 3000)
+#  - Migraciones Alembic automáticas (entrypoint ya las ejecuta)
+#  - Volúmenes para datos y archivos subidos
+#  - Carga de variables desde .env (NO se copia al contenedor)
+#  - Reinicio automático ante fallos
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Valores por defecto si no existen en .env
+      POSTGRES_USER: ${POSTGRES_USER:-leyia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-leyia}
+      POSTGRES_DB: ${POSTGRES_DB:-leyia}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-leyia}", "-d", "${POSTGRES_DB:-leyia}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # NOTA: Se comenta la exposición del puerto 5432 hacia el host porque estaba en uso en tu máquina
+    # y provocaba el error "bind: address already in use". La app sigue accediendo internamente a
+    # Postgres vía el hostname 'db' en la red de Compose.
+    # Si realmente necesitas conectarte desde el host, descomenta el bloque 'ports' y asegúrate de que
+    # el puerto 5432 local esté libre o usa un puerto alterno, p.ej. "55432:5432".
+    # ports:
+    #   - "5432:5432"
+
+  app:
+    build: .
+    image: reflex-local
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # Forzamos DATABASE_URL apuntando al servicio db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-leyia}:${POSTGRES_PASSWORD:-leyia}@db:5432/${POSTGRES_DB:-leyia}
+      REFLEX_ENV: ${REFLEX_ENV:-dev}
+      PORT: ${PORT:-8000}
+      FRONTEND_PORT: ${FRONTEND_PORT:-3000}
+      # Control ejecución migraciones (1=on, 0=off)
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-1}
+      DB_WAIT_RETRIES: ${DB_WAIT_RETRIES:-60}
+      DB_WAIT_INTERVAL: ${DB_WAIT_INTERVAL:-2}
+    volumes:
+      # Archivos subidos persistentes
+      - uploaded_files:/app/uploaded_files
+      # (Opcional) Cache de Reflex para no reconstruir assets cada vez
+      # - reflex_cache:/home/appuser/.local/share/reflex
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+    restart: unless-stopped
+    # Healthcheck simple (puedes cambiar a /api/health si añades endpoint)
+    healthcheck:
+      # Intenta primero un endpoint de salud dedicado (si lo agregas luego), luego root backend y finalmente frontend.
+      # Fallará solo si los tres fallan. Más tolerante a compilaciones iniciales de Reflex.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health || curl -fsS http://localhost:8000 || curl -fsS http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+volumes:
+  pgdata:
+  uploaded_files:
+  # reflex_cache:  # descomenta si activas el volumen de cache

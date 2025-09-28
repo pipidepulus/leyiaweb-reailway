@@ -1,56 +1,66 @@
-## Dockerfile para despliegue en Render (Full Reflex + Postgres)
-## Mejores prácticas aplicadas: imagen slim, instalación mínima, usuario no root,
-## migraciones automáticas Alembic, healthcheck y servidor Reflex completo.
+## Dockerfile simplificado para uso LOCAL de la aplicación Reflex
+## Objetivos:
+##  - Entorno reproducible para desarrollo / pruebas locales
+##  - Sin OCR (eliminado para reducir dependencias) solo extracción PDF vía PyMuPDF
+##  - Usuario no root
+##  - Permitir alternar entre modo dev y prod con REFLEX_ENV
+##  - Sin Node (Reflex gestiona el toolchain interno en runtime si lo necesita)
 
-FROM python:3.12-slim AS base
+FROM python:3.12-slim
 
-ARG CACHE_BUSTER=1
+ARG UID=1000
+ARG GID=1000
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    REFLEX_ENV=prod \
-    PORT=8000
+    REFLEX_ENV=dev \
+    PORT=8000 \
+    FRONTEND_PORT=3000 \
+    HOME=/home/appuser \
+    REFLEX_DIR=/home/appuser/.local/share/reflex \
+    PATH=/home/appuser/.local/bin:$PATH
 
 WORKDIR /app
 
-# Dependencias del sistema (OCR/pdf + utilidades) + toolchain de compilación para wheels que requieran build
-# Añadimos librerías nativas típicas para Pillow (jpeg, zlib, tiff, webp, openjp2), lxml (libxml2/libxslt) y psycopg2 (libpq).
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl unzip tesseract-ocr tesseract-ocr-spa poppler-utils \
-        build-essential gcc g++ libpq-dev \
-        libjpeg62-turbo-dev zlib1g-dev libopenjp2-7-dev libtiff5-dev libwebp-dev \
-        libxml2-dev libxslt1-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Dependencias SISTEMA mínimas necesarias en runtime
+# (OCR removido: no tesseract, no poppler)
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        curl unzip \
+        libxml2 libxslt1.1 libpq5 ca-certificates; \
+    rm -rf /var/lib/apt/lists/*
 
-# Copiamos requerimientos primero para aprovechar cache de capas.
+# Copiar sólo requirements para cache de dependencias
 COPY requirements.txt ./
 
-# (Opcional) upgrade de pip para evitar warnings de build.
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     pip cache purge || true
 
-# Copiamos el código de la aplicación.
+# Copiar código fuente
 COPY . .
 
-# Crear usuario no root con home real y preparar rutas que Reflex intenta usar (~/.local/share/reflex)
-RUN groupadd -r app && useradd -r -g app -d /home/appuser -m appuser && \
-    mkdir -p /app/uploads /home/appuser/.local/share/reflex && \
-    chown -R appuser:app /app /home/appuser
-
-# Variables de entorno para que Reflex no intente escribir fuera del home o sin permisos
-ENV HOME=/home/appuser \
-    REFLEX_DIR=/home/appuser/.local/share/reflex
+# Crear usuario local (mismo UID/GID que host opcionalmente para evitar problemas en volúmenes)
+RUN groupadd -g ${GID} appuser || true && \
+    useradd -u ${UID} -g ${GID} -d /home/appuser -m -s /bin/bash appuser || true && \
+    mkdir -p /app/db /app/uploaded_files ${REFLEX_DIR} && \
+    chown -R appuser:appuser /app /home/appuser
 
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8000 3000
 
-# Healthcheck simple sobre la raíz (Reflex sirve /).
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD curl -f http://localhost:${PORT}/ || exit 1
+# Variable opcional para elegir host de backend (default 0.0.0.0 para acceso desde host)
+ENV BACKEND_HOST=0.0.0.0
 
-# Arranque directo de Reflex (sin script intermedio ni migraciones automáticas).
-# Si necesitas aplicar migraciones en el Postgres remoto:
-#   1. Abre shell en el servicio (Render) y ejecuta: alembic upgrade head
-#   2. O agrega una etapa manual antes de este comando.
-CMD ["sh", "-c", "reflex run --env prod --backend-host 0.0.0.0 --backend-port ${PORT:-8000}"]
+# Copiar entrypoint que ejecuta migraciones antes de iniciar Reflex (evita 'no such table').
+COPY docker-entrypoint.sh /entrypoint.sh
+
+# Variables para controlar migraciones automáticas y espera de DB (Postgres)
+ENV RUN_MIGRATIONS=1 \
+    DB_WAIT_RETRIES=30 \
+    DB_WAIT_INTERVAL=2
+
+# Usar entrypoint (puedes desactivar migraciones con -e RUN_MIGRATIONS=0)
+CMD ["sh", "/entrypoint.sh"]

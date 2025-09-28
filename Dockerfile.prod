@@ -1,0 +1,57 @@
+# Dockerfile.prod - Imagen de PRODUCCIÓN para despliegue en Render
+# - Un solo puerto ($PORT) (Render inyecta PORT)
+# - Modo prod (sin servidor dev react en 3000)
+# - Multi-stage para reducir tamaño
+# - Ejecutará migraciones vía docker-entrypoint.sh ya existente
+#
+# Construcción local de prueba:
+#   docker build -f Dockerfile.prod -t reflex-prod .
+#   docker run --rm -p 8000:8000 \
+#      -e DATABASE_URL=postgresql://user:pass@host:5432/db \
+#      -e OPENAI_API_KEY=sk-xxxx \
+#      reflex-prod
+#
+# En Render: seleccionar este Dockerfile y definir variables en el panel.
+
+FROM python:3.12-slim AS build
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl unzip libxml2 libxslt1.1 libpq5 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Etapa runtime ligera
+FROM python:3.12-slim AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    REFLEX_ENV=prod \
+    BACKEND_HOST=0.0.0.0 \
+    PORT=8000 \
+    RUN_MIGRATIONS=1 \
+    DB_WAIT_RETRIES=40 \
+    DB_WAIT_INTERVAL=2
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl unzip libxml2 libxslt1.1 libpq5 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+# Copiar dependencias ya instaladas
+COPY --from=build /usr/local /usr/local
+# Copiar código fuente
+COPY . .
+# EntryPoint (migraciones + arranque). El script ya soporta REFLEX_ENV=prod.
+# Usuario no root
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+EXPOSE 8000
+
+# CMD simplificado para Render SIN docker-entrypoint.sh
+# Pasos:
+# 1. Espera (ligera) a Postgres si DATABASE_URL es postgres
+# 2. Ejecuta migraciones Alembic (idempotente)
+# 3. Arranca Reflex en modo prod usando $PORT
+CMD ["/bin/sh", "-c", "echo '[startup] REFLEX_ENV='${REFLEX_ENV:-prod}; \
+python - <<'PY'\nimport os, time, sys\nurl=os.environ.get('DATABASE_URL','')\nif url.startswith('postgres'):\n    import psycopg2\n    retries=int(os.environ.get('DB_WAIT_RETRIES','40'))\n    interval=int(os.environ.get('DB_WAIT_INTERVAL','2'))\n    for i in range(retries):\n        try:\n            conn=psycopg2.connect(url); conn.close(); print(f'[startup] DB reachable on attempt {i+1}'); break\n        except Exception as e:\n            print(f'[startup] DB not ready ({i+1}/{retries}): {e}')\n            time.sleep(interval)\n    else:\n        print('[startup] WARNING: proceeding without confirmed DB connection')\nelse:\n    print('[startup] No postgres DATABASE_URL or empty; skipping wait')\nPY\n; echo '[startup] Running alembic upgrade head'; alembic upgrade head || { echo '[startup] Alembic failed'; exit 1; }; \
+echo '[startup] Launching Reflex on port '${PORT:-8000}; reflex run --env prod --backend-host 0.0.0.0 --backend-port ${PORT:-8000}"]
