@@ -42,14 +42,57 @@ REFLEX_PID=$!
 # Asegurar directorio nginx
 mkdir -p /etc/nginx
 
-# Generar config nginx sustituyendo variables
-echo "[start] Generating nginx config"
-export BACKEND_PORT PORT
-if ! envsubst '${BACKEND_PORT} ${PORT}' < /app/nginx.conf.template > /etc/nginx/nginx.conf; then
-  echo "[start] ERROR generando /etc/nginx/nginx.conf" >&2
+echo "[start] Generating nginx config (sin envsubst)"
+cat > /etc/nginx/nginx.conf <<'EOF'
+events {}
+http {
+  sendfile on;
+  tcp_nopush on;
+  tcp_nodelay on;
+  keepalive_timeout 65;
+  map $http_upgrade $connection_upgrade { default upgrade; '' close; }
+
+  upstream reflex_frontend { server 127.0.0.1:3000; }
+  upstream reflex_backend { server 127.0.0.1:BACKEND_PORT_PLACEHOLDER; }
+
+  server {
+    listen PORT_PLACEHOLDER;
+    server_name _;
+
+    location ~ ^/(_event|_ws|api|auth) {
+      proxy_pass http://reflex_backend;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /_ws {
+      proxy_pass http://reflex_backend;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_set_header Host $host;
+    }
+
+    location / {
+      proxy_pass http://reflex_frontend;
+      proxy_http_version 1.1;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+  }
+}
+EOF
+
+sed -i "s/BACKEND_PORT_PLACEHOLDER/${BACKEND_PORT}/g; s/PORT_PLACEHOLDER/${PORT}/g" /etc/nginx/nginx.conf || {
+  echo "[start] ERROR sustituyendo variables en nginx.conf" >&2
   kill $REFLEX_PID || true
   exit 2
-fi
+}
 
 echo "[start] Starting nginx (PID 1)"
-exec nginx -g 'daemon off;'
+exec nginx -g 'daemon off;' 
