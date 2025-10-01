@@ -40,18 +40,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=build /usr/local /usr/local
 # Copiar código fuente
 COPY . .
-# EntryPoint (migraciones + arranque). El script ya soporta REFLEX_ENV=prod.
-# Usuario no root
-RUN useradd -m appuser && chown -R appuser:appuser /app
-USER appuser
+# (Se mantiene root para simplificar ejecución de nginx y reflex)
 # Se expone un puerto genérico; Render asignará $PORT dinámico. El valor 10000 es solo documental.
-EXPOSE 10000
+EXPOSE 8080 10000 3000
+
+# Nginx necesita algunos directorios
+RUN mkdir -p /var/cache/nginx /var/run/nginx
 
 # CMD simplificado para Render SIN docker-entrypoint.sh
 # Pasos:
 # 1. Espera (ligera) a Postgres si DATABASE_URL es postgres
 # 2. Ejecuta migraciones Alembic (idempotente)
 # 3. Arranca Reflex en modo prod usando $PORT (sirviendo frontend y backend en el mismo puerto)
-CMD ["/bin/sh", "-c", "echo '[startup] REFLEX_ENV='${REFLEX_ENV:-prod}; \
-python - <<'PY'\nimport os, time, sys\nurl=os.environ.get('DATABASE_URL','')\nif url.startswith('postgres'):\n    import psycopg2\n    retries=int(os.environ.get('DB_WAIT_RETRIES','40'))\n    interval=int(os.environ.get('DB_WAIT_INTERVAL','2'))\n    for i in range(retries):\n        try:\n            conn=psycopg2.connect(url); conn.close(); print(f'[startup] DB reachable on attempt {i+1}'); break\n        except Exception as e:\n            print(f'[startup] DB not ready ({i+1}/{retries}): {e}')\n            time.sleep(interval)\n    else:\n        print('[startup] WARNING: proceeding without confirmed DB connection')\nelse:\n    print('[startup] No postgres DATABASE_URL or empty; skipping wait')\nPY\necho '[startup] Running alembic upgrade head'; alembic upgrade head || { echo '[startup] Alembic failed'; exit 1; }; \
-echo '[startup] Launching Reflex on port '${PORT:-10000}; exec reflex run --env prod --backend-host 0.0.0.0 --backend-port ${PORT:-10000}"]
+COPY start_prod.sh /start_prod.sh
+RUN chmod +x /start_prod.sh
+COPY nginx.conf.template /app/nginx.conf.template
+
+ENV BACKEND_PORT=10000
+
+CMD ["/bin/sh", "/start_prod.sh"]
