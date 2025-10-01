@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "[start] REFLEX_ENV=${REFLEX_ENV:-prod}"
-BACKEND_PORT=${BACKEND_PORT:-10000}
+BACKEND_PORT=${BACKEND_PORT:-10001}
 PORT=${PORT:-8080}
 DB_WAIT_RETRIES=${DB_WAIT_RETRIES:-40}
 DB_WAIT_INTERVAL=${DB_WAIT_INTERVAL:-2}
@@ -39,10 +39,17 @@ echo "[start] Launching Reflex (backend:$BACKEND_PORT frontend:3000)"
 reflex run --env prod --backend-host 0.0.0.0 --backend-port "$BACKEND_PORT" &
 REFLEX_PID=$!
 
+# Asegurar directorio nginx
+mkdir -p /etc/nginx
+
 # Generar config nginx sustituyendo variables
 echo "[start] Generating nginx config"
 export BACKEND_PORT PORT
-envsubst '${BACKEND_PORT} ${PORT}' < /app/nginx.conf.template > /etc/nginx/nginx.conf
+if ! envsubst '${BACKEND_PORT} ${PORT}' < /app/nginx.conf.template > /etc/nginx/nginx.conf; then
+  echo "[start] ERROR generando /etc/nginx/nginx.conf" >&2
+  kill $REFLEX_PID || true
+  exit 2
+fi
 
 echo "[start] Starting nginx (PID 1)"
 exec nginx -g 'daemon off;'

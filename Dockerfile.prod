@@ -17,7 +17,7 @@ FROM python:3.12-slim AS build
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl unzip libxml2 libxslt1.1 libpq5 ca-certificates && \
+    curl unzip libxml2 libxslt1.1 libpq5 ca-certificates nginx gettext-base && \
     rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -42,7 +42,7 @@ COPY --from=build /usr/local /usr/local
 COPY . .
 # (Se mantiene root para simplificar ejecución de nginx y reflex)
 # Se expone un puerto genérico; Render asignará $PORT dinámico. El valor 10000 es solo documental.
-EXPOSE 8080 10000 3000
+EXPOSE 8080 10001 3000
 
 # Nginx necesita algunos directorios
 RUN mkdir -p /var/cache/nginx /var/run/nginx
@@ -56,6 +56,6 @@ COPY start_prod.sh /start_prod.sh
 RUN chmod +x /start_prod.sh
 COPY nginx.conf.template /app/nginx.conf.template
 
-ENV BACKEND_PORT=10000
+ENV BACKEND_PORT=10001
 
 CMD ["/bin/sh", "/start_prod.sh"]
