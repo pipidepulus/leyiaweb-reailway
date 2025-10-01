@@ -52,11 +52,11 @@ cors_allowed = (
     else DEFAULT_ALLOWED_ORIGINS
 )
 
-config = rx.Config(
+# Construimos kwargs para permitir omitir frontend_port en producción (un solo puerto)
+_config_kwargs = dict(
     app_name="asistente_legal_constitucional_con_ia",
     backend_host="0.0.0.0",
     backend_port=PORT,
-    frontend_port=FRONTEND_PORT,
     api_url=API_URL,
     cors_allowed_origins=cors_allowed,
     tailwind=None,
@@ -64,11 +64,15 @@ config = rx.Config(
     db_url=DB_URL,
     upload_folder=UPLOAD_DIR,
     env=rx.Env.PROD if IS_PROD else rx.Env.DEV,
-    # Permitir desactivar recarga/observación en dev con variables de entorno
     reload=False if IS_PROD else (not DISABLE_RELOAD),
     watch=False if IS_PROD else (not DISABLE_WATCH),
     hot_reload=False if IS_PROD else (not DISABLE_HOT),
-    # Plugins: disable sitemap by default; when enabled, add explicitly to silence warnings
     plugins=([SITEMAP_PLUGIN] if ENABLE_SITEMAP and SITEMAP_PLUGIN is not None else []),
     disable_plugins=([] if ENABLE_SITEMAP else ["reflex.plugins.sitemap.SitemapPlugin"]),
 )
+
+# En desarrollo mantenemos servidor separado (hot reload). En prod lo omitimos para que Reflex sirva todo en un único puerto ($PORT)
+if not IS_PROD:
+    _config_kwargs["frontend_port"] = FRONTEND_PORT
+
+config = rx.Config(**_config_kwargs)
