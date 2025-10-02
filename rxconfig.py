@@ -113,8 +113,11 @@ config_kwargs: Dict[str, Any] = dict(
 )
 
 if not IS_PROD:
-    # Sólo en desarrollo levantamos frontend separado
+    # Desarrollo: frontend separado
     config_kwargs["frontend_port"] = FRONTEND_PORT_DEV
+else:
+    # Producción: forzamos mismo puerto para evitar segundo binding (Render multi-port warning)
+    config_kwargs["frontend_port"] = PORT
 
 config = rx.Config(**config_kwargs)
 
