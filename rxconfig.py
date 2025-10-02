@@ -42,8 +42,16 @@ render_external = os.getenv("RENDER_EXTERNAL_URL")  # P.e. https://leyiaweb.onre
 if not IS_PROD:
     API_URL = (explicit_api_url or f"http://localhost:{PORT}").rstrip("/")
 else:
-    # Producción: si el usuario definió API_URL la usamos; si no, cadena vacía (rutas relativas mismas origen).
-    API_URL = (explicit_api_url.rstrip("/") if explicit_api_url else "")
+    # Producción: Reflex (0.8.12) espera una URL absoluta para construir con new URL().
+    # Usamos prioridades: 1) API_URL explícita 2) RENDER_EXTERNAL_URL 3) fallback localhost (último recurso).
+    if explicit_api_url:
+        API_URL = explicit_api_url.rstrip("/")
+    elif render_external:
+        API_URL = render_external.rstrip("/")
+    else:
+        # Fallback: aunque apuntará a 127.0.0.1 desde el navegador (no ideal), evita fallar el build.
+        # Se recomienda establecer RENDER_EXTERNAL_URL.
+        API_URL = f"http://127.0.0.1:{PORT}"
 
 # --- Frontend Port ---
 # En producción NO definimos frontend_port para evitar servidor adicional (un solo puerto servido por backend).
@@ -111,4 +119,4 @@ if not IS_PROD:
 config = rx.Config(**config_kwargs)
 
 # Log simpático (visible en import) para confirmar modo y DB.
-print(f"[rxconfig] ENV={ENV} backend_port={PORT} frontend_port={'disabled' if IS_PROD else FRONTEND_PORT_DEV} DB={DB_URL.split(':',1)[0]} api_url={'(relative)' if API_URL=='' else API_URL}")
+print(f"[rxconfig] ENV={ENV} backend_port={PORT} frontend_port={'disabled' if IS_PROD else FRONTEND_PORT_DEV} DB={DB_URL.split(':',1)[0]} api_url={API_URL}")
