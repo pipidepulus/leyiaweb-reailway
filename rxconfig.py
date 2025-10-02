@@ -35,18 +35,15 @@ else:
 UPLOAD_DIR = os.getenv("UPLOAD_FOLDER", "/tmp/legalassistant_uploads")
 
 # --- API URL ---
-# En producción preferimos rutas relativas (api_url=None) para que el frontend use el mismo origen.
-# Si el usuario define API_URL explícito, lo respetamos; si no, intentamos RENDER_EXTERNAL_URL solo para CORS, no como api_url.
+# Reflex 0.8.12 espera siempre un str al construir endpoints (no admite None); para usar rutas relativas
+# usamos cadena vacía "" y Reflex concatenará los paths correctamente.
 explicit_api_url = os.getenv("API_URL")
 render_external = os.getenv("RENDER_EXTERNAL_URL")  # P.e. https://leyiaweb.onrender.com
-API_URL = None
 if not IS_PROD:
-    # En dev sí necesitamos apuntar explícitamente al backend (cuando frontend dev corre en otro puerto)
-    API_URL = explicit_api_url or f"http://localhost:{PORT}"
+    API_URL = (explicit_api_url or f"http://localhost:{PORT}").rstrip("/")
 else:
-    # En prod: sólo usar API_URL si el usuario lo forzó explícitamente.
-    if explicit_api_url:
-        API_URL = explicit_api_url.rstrip("/")
+    # Producción: si el usuario definió API_URL la usamos; si no, cadena vacía (rutas relativas mismas origen).
+    API_URL = (explicit_api_url.rstrip("/") if explicit_api_url else "")
 
 # --- Frontend Port ---
 # En producción NO definimos frontend_port para evitar servidor adicional (un solo puerto servido por backend).
@@ -114,4 +111,4 @@ if not IS_PROD:
 config = rx.Config(**config_kwargs)
 
 # Log simpático (visible en import) para confirmar modo y DB.
-print(f"[rxconfig] ENV={ENV} backend_port={PORT} frontend_port={'disabled' if IS_PROD else FRONTEND_PORT_DEV} DB={DB_URL.split(':',1)[0]} api_url={'(relative)' if API_URL is None else API_URL}")
+print(f"[rxconfig] ENV={ENV} backend_port={PORT} frontend_port={'disabled' if IS_PROD else FRONTEND_PORT_DEV} DB={DB_URL.split(':',1)[0]} api_url={'(relative)' if API_URL=='' else API_URL}")
