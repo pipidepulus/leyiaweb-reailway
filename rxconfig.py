@@ -93,6 +93,21 @@ if render_external:
     if origin not in cors_allowed:
         cors_allowed.append(origin)
 
+# Aseguramos que si API_URL es absoluto su origen esté en CORS (por si no vino en RENDER_EXTERNAL_URL)
+def _origin_from(url: str) -> str:
+    try:
+        p = urlparse(url)
+        if p.scheme and p.netloc:
+            return f"{p.scheme}://{p.netloc}"
+    except Exception:
+        pass
+    return ""
+
+if API_URL:
+    api_origin = _origin_from(API_URL)
+    if api_origin and api_origin not in cors_allowed:
+        cors_allowed.append(api_origin)
+
 # --- Construcción dinámica de kwargs ---
 config_kwargs: Dict[str, Any] = dict(
     app_name="asistente_legal_constitucional_con_ia",
@@ -115,11 +130,15 @@ config_kwargs: Dict[str, Any] = dict(
 if not IS_PROD:
     # Desarrollo: frontend separado
     config_kwargs["frontend_port"] = FRONTEND_PORT_DEV
+    frontend_label = FRONTEND_PORT_DEV
 else:
-    # Producción: forzamos mismo puerto para evitar segundo binding (Render multi-port warning)
-    config_kwargs["frontend_port"] = PORT
+    # Producción: NO fijamos frontend_port para permitir a Reflex servir estático vía backend.
+    frontend_label = "disabled"
 
 config = rx.Config(**config_kwargs)
 
 # Log simpático (visible en import) para confirmar modo y DB.
-print(f"[rxconfig] ENV={ENV} backend_port={PORT} frontend_port={'disabled' if IS_PROD else FRONTEND_PORT_DEV} DB={DB_URL.split(':',1)[0]} api_url={API_URL}")
+event_url_preview = f"{API_URL}/_event" if API_URL else f"/_event (relative)"
+print(
+    f"[rxconfig] ENV={ENV} backend_port={PORT} frontend_port={frontend_label} DB={DB_URL.split(':',1)[0]} api_url={API_URL} event_endpoint={event_url_preview}"
+)
