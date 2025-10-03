@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     build-essential \
     libpq-dev \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Node.js 20.x (requerido por Reflex para el frontend)
@@ -46,6 +47,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     libpq5 \
     postgresql-client \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Node.js 20.x (necesario para el frontend de Reflex)
