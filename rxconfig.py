@@ -1,144 +1,99 @@
-import os
-from urllib.parse import urlparse
-from dotenv import load_dotenv
-from typing import Any, Dict
-import reflex as rx
+"""Archivo de configuración de Reflex para la aplicación.
 
-"""Configuración central de Reflex.
-
-Objetivos de esta revisión:
-1. Evitar que en producción (Render) se levante un frontend dev separado (puerto 3000).
-2. Forzar uso de PostgreSQL en producción (error si falta DATABASE_URL) y eliminar fallback SQLite prod.
-3. No incrustar 'http://localhost' en el bundle de producción: permitir API relativa o usar RENDER_EXTERNAL_URL.
-4. CORS dinámico incluyendo dominio externo si existe.
-5. Mantener experiencia DX completa en desarrollo (hot reload, watch, frontend_port).
+Este archivo define la configuración principal de la aplicación Reflex,
+incluyendo el nombre de la aplicación, puertos, configuración de base de datos,
+y opciones de despliegue.
 """
 
-# Carga de variables de entorno temprana
-load_dotenv()
+import os
+import reflex as rx
 
-ENV = os.getenv("REFLEX_ENV", "dev").lower()
-IS_PROD = ENV == "prod"
-PORT = int(os.getenv("PORT", "8000"))  # Puerto backend (único en prod)
-
-# --- Base de Datos ---
-if IS_PROD:
-    DB_URL = os.getenv("DATABASE_URL")
-    if not DB_URL:
-        raise RuntimeError("DATABASE_URL es obligatorio en producción (PostgreSQL).")
-    if DB_URL.startswith("sqlite:"):
-        raise RuntimeError("En producción no se permite SQLite. Proporciona un DATABASE_URL PostgreSQL.")
-else:
-    # En desarrollo permitimos fallback SQLite para simplificar.
-    DB_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/legal_assistant_dev.db")
-
-UPLOAD_DIR = os.getenv("UPLOAD_FOLDER", "/tmp/legalassistant_uploads")
-
-# --- API URL ---
-# Reflex 0.8.12 espera siempre un str al construir endpoints (no admite None); para usar rutas relativas
-# usamos cadena vacía "" y Reflex concatenará los paths correctamente.
-explicit_api_url = os.getenv("API_URL")
-render_external = os.getenv("RENDER_EXTERNAL_URL")  # P.e. https://leyiaweb.onrender.com
-if not IS_PROD:
-    API_URL = (explicit_api_url or f"http://localhost:{PORT}").rstrip("/")
-else:
-    # Producción: Reflex (0.8.12) espera una URL absoluta para construir con new URL().
-    # Usamos prioridades: 1) API_URL explícita 2) RENDER_EXTERNAL_URL 3) fallback localhost (último recurso).
-    if explicit_api_url:
-        API_URL = explicit_api_url.rstrip("/")
-    elif render_external:
-        API_URL = render_external.rstrip("/")
-    else:
-        # Fallback: aunque apuntará a 127.0.0.1 desde el navegador (no ideal), evita fallar el build.
-        # Se recomienda establecer RENDER_EXTERNAL_URL.
-        API_URL = f"http://127.0.0.1:{PORT}"
-
-# --- Frontend Port ---
-# En producción NO definimos frontend_port para evitar servidor adicional (un solo puerto servido por backend).
-FRONTEND_PORT_DEV = int(os.getenv("FRONTEND_PORT", "3000"))
-
-# --- Flags de recarga sólo relevantes en dev ---
-DISABLE_RELOAD = os.getenv("REFLEX_DISABLE_RELOAD", "0").lower() in {"1", "true", "yes"}
-DISABLE_WATCH = os.getenv("REFLEX_DISABLE_WATCH", "0").lower() in {"1", "true", "yes"}
-DISABLE_HOT = os.getenv("REFLEX_DISABLE_HOT", "0").lower() in {"1", "true", "yes"}
-
-# --- Plugins (sitemap opcional) ---
-ENABLE_SITEMAP = os.getenv("REFLEX_ENABLE_SITEMAP", "0").lower() in {"1", "true", "yes"}
-SITEMAP_PLUGIN: Any = None
-if ENABLE_SITEMAP:
-    try:  # type: ignore[attr-defined]
-        from reflex.plugins.sitemap import SitemapPlugin as _SitemapPlugin  # type: ignore
-
-        SITEMAP_PLUGIN = _SitemapPlugin
-    except Exception:
-        SITEMAP_PLUGIN = None
-
-# --- CORS ---
-default_cors = []
-if not IS_PROD:
-    default_cors = [
-        f"http://localhost:{FRONTEND_PORT_DEV}",
-        f"http://127.0.0.1:{FRONTEND_PORT_DEV}",
-    ]
-cors_env = os.getenv("CORS_ALLOWED_ORIGINS")
-if cors_env:
-    cors_allowed = [o.strip() for o in cors_env.split(",") if o.strip()]
-else:
-    cors_allowed = default_cors
-
-# Añadimos dominio externo de Render si está definido y no se incluyó.
-if render_external:
-    parsed = urlparse(render_external)
-    origin = f"{parsed.scheme}://{parsed.netloc}"
-    if origin not in cors_allowed:
-        cors_allowed.append(origin)
-
-# Aseguramos que si API_URL es absoluto su origen esté en CORS (por si no vino en RENDER_EXTERNAL_URL)
-def _origin_from(url: str) -> str:
-    try:
-        p = urlparse(url)
-        if p.scheme and p.netloc:
-            return f"{p.scheme}://{p.netloc}"
-    except Exception:
-        pass
-    return ""
-
-if API_URL:
-    api_origin = _origin_from(API_URL)
-    if api_origin and api_origin not in cors_allowed:
-        cors_allowed.append(api_origin)
-
-# --- Construcción dinámica de kwargs ---
-config_kwargs: Dict[str, Any] = dict(
+# Obtener configuración desde variables de entorno con valores por defecto
+config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
-    backend_host="0.0.0.0",
-    backend_port=PORT,
-    api_url=API_URL,  # Puede ser None (Reflex debería manejar relativo)
-    cors_allowed_origins=cors_allowed,
-    tailwind=None,
-    show_built_with_reflex=False,
-    db_url=DB_URL,
-    upload_folder=UPLOAD_DIR,
-    env=rx.Env.PROD if IS_PROD else rx.Env.DEV,
-    reload=False if IS_PROD else (not DISABLE_RELOAD),
-    watch=False if IS_PROD else (not DISABLE_WATCH),
-    hot_reload=False if IS_PROD else (not DISABLE_HOT),
-    plugins=([SITEMAP_PLUGIN] if ENABLE_SITEMAP and SITEMAP_PLUGIN is not None else []),
-    disable_plugins=([] if ENABLE_SITEMAP else ["reflex.plugins.sitemap.SitemapPlugin"]),
+    
+    # Configuración de puertos
+    # En Render, se usa la variable de entorno PORT
+    backend_port=int(os.getenv("PORT", "8000")),
+    frontend_port=int(os.getenv("FRONTEND_PORT", "3000")),
+    
+    # Configuración de base de datos
+    # Reflex usa SQLAlchemy internamente para su estado
+    db_url=os.getenv(
+        "DATABASE_URL",
+        "postgresql://leyia:leyia@db:5432/leyia"
+    ),
+    
+    # Configuración de Redis (opcional pero recomendado para producción)
+    # Si no se proporciona, Reflex usa un backend en memoria
+    redis_url=os.getenv("REDIS_URL", None),
+    
+    # Configuración de entorno
+    # dev: modo desarrollo con hot reload
+    # prod: modo producción optimizado
+    env=rx.Env(os.getenv("REFLEX_ENV", "prod")),
+    
+    # Configuración de API
+    # Habilitar CORS para permitir peticiones desde el frontend
+    cors_allowed_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000",
+        # Agregar el dominio de Render cuando se despliegue
+        os.getenv("FRONTEND_URL", "*"),
+    ],
+    
+    # Configuración de compilación
+    # Deshabilitar telemetría en producción
+    telemetry_enabled=False,
+    
+    # Timeout para conexión a base de datos (útil en despliegue)
+    timeout=120,
+    
+    # Configuración de activos estáticos
+    # Los archivos en /assets se sirven automáticamente
+    
+    # Configuración de compilación del frontend
+    # next_compression: Habilitar compresión en Next.js
+    next_compression=True,
+    
+    # Configuración de logs
+    # En producción, reducir verbosidad
+    loglevel="info" if os.getenv("REFLEX_ENV") == "prod" else "debug",
 )
 
-if not IS_PROD:
-    # Desarrollo: frontend separado
-    config_kwargs["frontend_port"] = FRONTEND_PORT_DEV
-    frontend_label = FRONTEND_PORT_DEV
-else:
-    # Producción: NO fijamos frontend_port para permitir a Reflex servir estático vía backend.
-    frontend_label = "disabled"
+# Configuración adicional para producción en Render
+if os.getenv("RENDER"):
+    # En Render, ajustar configuraciones específicas
+    config.backend_port = int(os.getenv("PORT", "8000"))
+    
+    # Asegurar que el frontend apunte al backend correcto
+    # Render proporciona la URL del servicio en RENDER_EXTERNAL_URL
+    backend_url = os.getenv("RENDER_EXTERNAL_URL", f"http://0.0.0.0:{config.backend_port}")
+    config.api_url = backend_url
+    
+    # Configurar el origen del frontend para CORS
+    frontend_url = os.getenv("FRONTEND_URL", backend_url)
+    if frontend_url not in config.cors_allowed_origins:
+        config.cors_allowed_origins.append(frontend_url)
+    
+    # En producción, usar bind 0.0.0.0 para aceptar conexiones externas
+    config.backend_host = "0.0.0.0"
+    config.frontend_host = "0.0.0.0"
 
-config = rx.Config(**config_kwargs)
-
-# Log simpático (visible en import) para confirmar modo y DB.
-event_url_preview = f"{API_URL}/_event" if API_URL else f"/_event (relative)"
-print(
-    f"[rxconfig] ENV={ENV} backend_port={PORT} frontend_port={frontend_label} DB={DB_URL.split(':',1)[0]} api_url={API_URL} event_endpoint={event_url_preview}"
-)
+# Notas de configuración:
+# ----------------------
+# 1. DATABASE_URL: Debe estar configurada en las variables de entorno de Render
+#    Formato: postgresql://usuario:contraseña@host:puerto/database
+#
+# 2. OPENAI_API_KEY: Requerida para el asistente legal
+#
+# 3. ASSEMBLYAI_API_KEY: Requerida para transcripción de audio
+#
+# 4. TAVILY_API_KEY: Requerida para búsqueda web
+#
+# 5. REDIS_URL (opcional): Para mejor rendimiento en producción
+#    Formato: redis://host:puerto
+#
+# 6. REFLEX_ENV: Configurar a "prod" en Render
+#
+# 7. PORT: Render lo configura automáticamente
