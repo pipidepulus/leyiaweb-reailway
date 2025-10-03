@@ -9,7 +9,15 @@ Si aún aparece un frontend :3000 tras esta simplificación, el origen NO es la 
 
 ENV = os.getenv("REFLEX_ENV", "dev").lower()
 IS_PROD = ENV == "prod"
-PORT = int(os.getenv("PORT", "10000"))  # usar 10000 como default prod típico
+
+# Congelamos el puerto backend: algunos procesos secundarios (build/SSR frontend) pueden
+# modificar PORT=3000 antes de re-importar este módulo. Para evitar que el backend_port
+# "salte" en los logs, guardamos el valor inicial en BACKEND_PORT_FIXED.
+if "BACKEND_PORT_FIXED" in os.environ:
+    PORT = int(os.environ["BACKEND_PORT_FIXED"])  # reutilizamos el original
+else:
+    PORT = int(os.getenv("PORT", "10000"))  # default típico prod
+    os.environ["BACKEND_PORT_FIXED"] = str(PORT)
 
 # Base de datos mínima
 if IS_PROD:
@@ -36,6 +44,8 @@ config = rx.Config(
     env=rx.Env.PROD if IS_PROD else rx.Env.DEV,
     db_url=DB_URL,
     api_url=api_url,
+    # Desactivamos explícitamente sitemap para suprimir warnings repetidos.
+    disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
 )
 
 print(f"[rxconfig:min] ENV={ENV} backend_port={PORT} api_url={api_url} db={DB_URL.split(':',1)[0]}")
