@@ -17,8 +17,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Pre-build frontend & static assets once (production export) to avoid runtime dev server.
-ENV REFLEX_ENV=prod
-RUN echo "[build] Running reflex export (production)" && \
+ENV REFLEX_ENV=prod \
+    DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder \
+    API_URL=http://localhost:10000
+RUN echo "[build] Running reflex export (production with dummy DB)" && \
     reflex export --env prod --no-zip || (echo "[build] reflex export failed" && exit 1)
 
 # Etapa final (runtime más ligera reutilizando /usr/local del build)
