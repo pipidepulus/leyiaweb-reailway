@@ -1,103 +1,56 @@
-"""Archivo de configuración de Reflex para la aplicación.
+"""Archivo de configuración de Reflex para despliegue en Render.
 
-Este archivo define la configuración principal de la aplicación Reflex,
-incluyendo el nombre de la aplicación, puertos, configuración de base de datos,
-y opciones de despliegue.
+Configuración optimizada para producción en Render.com que asigna automáticamente
+el puerto 10000 para todos los servicios.
 """
 
 import os
 import reflex as rx
 
-# Obtener configuración desde variables de entorno con valores por defecto
+# Configuración específica para Render
+# Render asigna automáticamente puerto 10000
 config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
     
-    # Configuración de puertos
-    # En Render, se usa la variable de entorno PORT
-    backend_port=int(os.getenv("PORT", "8000")),
-    frontend_port=int(os.getenv("PORT", "8000")),  # Frontend usa el mismo puerto en producción
+    # Puerto único para Render (backend + frontend integrados)
+    backend_port=10000,
+    frontend_port=10000,
     
-    # Configuración de base de datos
-    # Reflex usa SQLAlchemy internamente para su estado
+    # Base de datos
     db_url=os.getenv(
         "DATABASE_URL",
         "postgresql://leyia:leyia@db:5432/leyia"
     ),
     
-    # Configuración de Redis (opcional pero recomendado para producción)
-    # Si no se proporciona, Reflex usa un backend en memoria
+    # Redis opcional
     redis_url=os.getenv("REDIS_URL", None),
     
-    # Configuración de entorno
-    # dev: modo desarrollo con hot reload
-    # prod: modo producción optimizado
-    env=rx.Env(os.getenv("REFLEX_ENV", "prod")),
+    # Entorno de producción
+    env=rx.Env.PROD,
     
-    # Configuración de API
-    # Habilitar CORS para permitir peticiones desde el frontend
+    # CORS para Render
     cors_allowed_origins=[
-        "http://localhost:3000",
-        "http://localhost:8000",
-        # Agregar el dominio de Render cuando se despliegue
-        os.getenv("FRONTEND_URL", "*"),
+        "https://leyiaweb.onrender.com",
+        "https://*.onrender.com",
+        "*",  # Permitir todos los orígenes en producción
     ],
     
-    # Configuración de compilación
-    # Deshabilitar telemetría en producción
+    # Configuración de producción
     telemetry_enabled=False,
-    
-    # Timeout para conexión a base de datos (útil en despliegue)
     timeout=120,
     
-    # Configuración de activos estáticos
-    # Los archivos en /assets se sirven automáticamente
-    
-    # Configuración de compilación del frontend
-    # next_compression: Habilitar compresión en Next.js
-    next_compression=True,
-    
-    # Configuración de logs - SIMPLIFICADO para evitar errores de enum
-    # Usar default de Reflex en lugar de configurar manualmente
+    # Hosts para Render
+    backend_host="0.0.0.0",
+    frontend_host="0.0.0.0",
     
     # Deshabilitar plugin de sitemap que genera warnings
     disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
 )
 
-# Configuración adicional para producción en Render
-if os.getenv("RENDER") or os.getenv("REFLEX_ENV") == "prod":
-    # En Render, ajustar configuraciones específicas
-    render_port = int(os.getenv("PORT", "8000"))
-    config.backend_port = render_port
-    config.frontend_port = render_port  # Frontend y backend en el mismo puerto
-    
-    # Asegurar que el frontend apunte al backend correcto
-    # Render proporciona la URL del servicio en RENDER_EXTERNAL_URL
-    backend_url = os.getenv("RENDER_EXTERNAL_URL", f"http://0.0.0.0:{render_port}")
-    config.api_url = backend_url
-    
-    # Configurar el origen del frontend para CORS
-    frontend_url = os.getenv("FRONTEND_URL", backend_url)
-    if frontend_url not in config.cors_allowed_origins:
-        config.cors_allowed_origins.append(frontend_url)
-    
-    # En producción, usar bind 0.0.0.0 para aceptar conexiones externas
-    config.backend_host = "0.0.0.0"
-    config.frontend_host = "0.0.0.0"
-
-# Notas de configuración:
-# ----------------------
-# 1. DATABASE_URL: Debe estar configurada en las variables de entorno de Render
-#    Formato: postgresql://usuario:contraseña@host:puerto/database
-#
-# 2. OPENAI_API_KEY: Requerida para el asistente legal
-#
-# 3. ASSEMBLYAI_API_KEY: Requerida para transcripción de audio
-#
-# 4. TAVILY_API_KEY: Requerida para búsqueda web
-#
-# 5. REDIS_URL (opcional): Para mejor rendimiento en producción
-#    Formato: redis://host:puerto
-#
-# 6. REFLEX_ENV: Configurar a "prod" en Render
-#
-# 7. PORT: Render lo configura automáticamente
+# Notas para Render:
+# - Render asigna automáticamente puerto 10000
+# - DATABASE_URL se configura automáticamente
+# - Variables de entorno requeridas:
+#   * OPENAI_API_KEY
+#   * ASSEMBLYAI_API_KEY  
+#   * TAVILY_API_KEY
