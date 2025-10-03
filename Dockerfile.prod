@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl unzip libxml2 libxslt1.1 libpq5 ca-certificates && \
+    curl unzip libxml2 libxslt1.1 libpq5 ca-certificates git && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
@@ -15,6 +15,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip cache purge || true
 
 COPY . .
+
+# Pre-build frontend & static assets once (production export) to avoid runtime dev server.
+ENV REFLEX_ENV=prod
+RUN echo "[build] Running reflex export (production)" && \
+    reflex export --env prod --no-zip || (echo "[build] reflex export failed" && exit 1)
 
 # Etapa final (runtime más ligera reutilizando /usr/local del build)
 FROM python:3.12-slim AS runtime
