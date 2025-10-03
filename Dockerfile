@@ -104,32 +104,55 @@ wait_for_db() {
     
     # Extraer componentes de DATABASE_URL
     if [ -n "$DATABASE_URL" ]; then
+        echo "🔍 DATABASE_URL detectada"
+        
         # Parsear DATABASE_URL para obtener host, puerto, etc.
-        DB_HOST=$(echo $DATABASE_URL | sed -E 's|.*@([^:/]+).*|\1|')
-        DB_PORT=$(echo $DATABASE_URL | sed -E 's|.*:([0-9]+)/.*|\1|')
-        DB_USER=$(echo $DATABASE_URL | sed -E 's|.*://([^:]+):.*|\1|')
-        DB_NAME=$(echo $DATABASE_URL | sed -E 's|.*/([^?]+).*|\1|')
+        # Formato: postgresql://user:pass@host:port/dbname o postgresql://user:pass@host/dbname
+        
+        # Extraer el host (puede incluir .a para Render interno)
+        DB_HOST=$(echo "$DATABASE_URL" | sed -E 's|.*@([^:/]+).*|\1|')
+        
+        # Extraer puerto (si existe, sino usar 5432)
+        if echo "$DATABASE_URL" | grep -qE '@[^/]+:[0-9]+/'; then
+            DB_PORT=$(echo "$DATABASE_URL" | sed -E 's|.*:([0-9]+)/.*|\1|')
+        else
+            DB_PORT=5432
+        fi
+        
+        # Extraer usuario
+        DB_USER=$(echo "$DATABASE_URL" | sed -E 's|.*://([^:]+):.*|\1|')
+        
+        # Extraer nombre de base de datos (todo después de la última /)
+        DB_NAME=$(echo "$DATABASE_URL" | sed -E 's|.*/([^/?]+)(\?.*)?$|\1|')
         
         echo "🔍 DB Host: $DB_HOST"
         echo "🔍 DB Port: $DB_PORT"
+        echo "🔍 DB User: $DB_USER"
+        echo "🔍 DB Name: $DB_NAME"
         
         # Esperar hasta que PostgreSQL acepte conexiones
-        retries=${DB_WAIT_RETRIES:-60}
-        interval=${DB_WAIT_INTERVAL:-2}
+        retries=${DB_WAIT_RETRIES:-90}
+        interval=${DB_WAIT_INTERVAL:-3}
+        
+        echo "⏳ Intentando conectar a PostgreSQL (máximo $retries intentos)..."
         
         for i in $(seq 1 $retries); do
-            if pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME > /dev/null 2>&1; then
-                echo "✅ PostgreSQL está listo!"
+            # Intentar conexión con pg_isready
+            if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1; then
+                echo "✅ PostgreSQL está listo y aceptando conexiones!"
                 return 0
             fi
+            
             echo "⏳ Intento $i/$retries: PostgreSQL no está listo. Esperando ${interval}s..."
             sleep $interval
         done
         
         echo "❌ ERROR: PostgreSQL no está disponible después de $retries intentos"
+        echo "💡 Sugerencia: Verifica que DATABASE_URL sea correcta y que el servicio PostgreSQL esté activo en Render"
         return 1
     else
         echo "⚠️  DATABASE_URL no está configurada, saltando verificación de DB"
+        echo "⚠️  La aplicación puede fallar si intenta usar la base de datos"
     fi
 }
 
@@ -231,11 +254,15 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # ===============================
 # 1. Variables de entorno requeridas:
 #    - DATABASE_URL (proporcionada automáticamente si usas Render PostgreSQL)
+#      Formato: postgresql://usuario:password@host/database
+#      Ejemplo Render: postgresql://leyia_postgres_user:pass@dpg-xxx-a/leyia_postgres
 #    - OPENAI_API_KEY
 #    - ASSEMBLYAI_API_KEY
 #    - TAVILY_API_KEY
 #    - REFLEX_ENV=prod
 #    - RUN_MIGRATIONS=1 (para ejecutar migraciones automáticamente)
+#    - DB_WAIT_RETRIES=90 (incrementado para Render)
+#    - DB_WAIT_INTERVAL=3 (incrementado para Render)
 #
 # 2. Configuración de Render:
 #    - Build Command: docker build -t reflex-app .
@@ -245,6 +272,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # 3. Servicio de PostgreSQL:
 #    - Crear un servicio PostgreSQL en Render
 #    - Render automáticamente configura DATABASE_URL
+#    - IMPORTANTE: Usar la URL INTERNA (con -a) para mejor conectividad
 #
 # 4. Disco persistente:
 #    - Montar volumen en /app/uploaded_files para archivos subidos
