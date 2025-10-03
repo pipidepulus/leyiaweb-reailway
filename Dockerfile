@@ -226,11 +226,10 @@ main() {
     export_frontend
     
     echo "🎯 Iniciando servidor Reflex para Render..."
-    echo "🌐 Puerto asignado por Render: 10000 (backend + frontend integrados)"
+    echo "🌐 Puerto asignado por Render: ${PORT} (backend + frontend integrados)"
     
-    # Iniciar Reflex en modo producción para Render
-    # Render asigna automáticamente el puerto 10000
-    exec reflex run --env prod --backend-host 0.0.0.0 --backend-port 10000
+    # Iniciar Reflex en modo producción - Render maneja el puerto automáticamente
+    exec reflex run --env prod --backend-host 0.0.0.0
 }
 
 # Ejecutar función principal

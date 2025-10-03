@@ -8,13 +8,13 @@ import os
 import reflex as rx
 
 # Configuración específica para Render
-# Render asigna automáticamente puerto 10000
+# Render asigna automáticamente el puerto a través de la variable PORT
 config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
     
-    # Puerto único para Render (backend + frontend integrados)
-    backend_port=10000,
-    frontend_port=10000,
+    # Puerto dinámico asignado por Render
+    backend_port=int(os.getenv("PORT", "8000")),
+    frontend_port=int(os.getenv("PORT", "8000")),
     
     # Base de datos
     db_url=os.getenv(
