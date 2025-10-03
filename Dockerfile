@@ -231,9 +231,9 @@ main() {
     echo "🌐 Backend: http://0.0.0.0:${PORT:-8000}"
     echo "🌐 Frontend: http://0.0.0.0:${FRONTEND_PORT:-3000}"
     
-    # Iniciar Reflex en modo producción - solo backend
-    # Render maneja el frontend automáticamente
-    exec reflex run --env prod --backend-only --backend-host 0.0.0.0 --backend-port ${PORT:-8000}
+    # Iniciar Reflex en modo producción - backend y frontend integrados
+    # Render maneja el puerto automáticamente vía $PORT
+    exec reflex run --env prod --backend-host 0.0.0.0 --backend-port ${PORT:-8000}
 }
 
 # Ejecutar función principal
