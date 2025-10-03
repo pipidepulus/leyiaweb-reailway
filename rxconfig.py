@@ -58,7 +58,7 @@ config = rx.Config(
     
     # Configuración de logs
     # En producción, reducir verbosidad
-    loglevel="info" if os.getenv("REFLEX_ENV") == "prod" else "debug",
+    loglevel=rx.LogLevel.INFO if os.getenv("REFLEX_ENV") == "prod" else rx.LogLevel.DEBUG,
 )
 
 # Configuración adicional para producción en Render
