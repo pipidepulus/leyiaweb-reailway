@@ -230,7 +230,7 @@ main() {
     
     # Iniciar Reflex en modo producción para Render
     # Render asigna automáticamente el puerto 10000
-    exec reflex run --env prod --host 0.0.0.0 --port 10000
+    exec reflex run --env prod --backend-host 0.0.0.0 --backend-port 10000
 }
 
 # Ejecutar función principal
