@@ -195,10 +195,8 @@ init_reflex() {
         return 1
     }
     
-    # Instalar sirv globalmente para el frontend
-    npm install -g sirv-cli || {
-        echo "⚠️  Advertencia: sirv-cli no se pudo instalar, usando alternativa"
-    }
+    # No necesitamos sirv en Render - Reflex maneja todo integrado
+    echo "✅ Skipping sirv install - using integrated Reflex server"
     
     echo "✅ Reflex inicializado correctamente"
 }
@@ -228,12 +226,11 @@ main() {
     export_frontend
     
     echo "🎯 Iniciando servidor Reflex..."
-    echo "🌐 Backend: http://0.0.0.0:${PORT:-8000}"
-    echo "🌐 Frontend: http://0.0.0.0:${FRONTEND_PORT:-3000}"
+    echo "🌐 Server: http://0.0.0.0:${PORT:-8000} (backend + frontend integrados)"
     
-    # Iniciar Reflex en modo producción - backend y frontend integrados
-    # Render maneja el puerto automáticamente vía $PORT
-    exec reflex run --env prod --backend-host 0.0.0.0 --backend-port ${PORT:-8000}
+    # Iniciar Reflex en modo producción - servidor integrado
+    # Reflex 0.8.13+ maneja frontend y backend en el mismo puerto
+    exec reflex run --env prod --host 0.0.0.0 --port ${PORT:-8000}
 }
 
 # Ejecutar función principal

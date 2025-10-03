@@ -15,7 +15,7 @@ config = rx.Config(
     # Configuración de puertos
     # En Render, se usa la variable de entorno PORT
     backend_port=int(os.getenv("PORT", "8000")),
-    frontend_port=int(os.getenv("FRONTEND_PORT", "3000")),
+    frontend_port=int(os.getenv("PORT", "8000")),  # Frontend usa el mismo puerto en producción
     
     # Configuración de base de datos
     # Reflex usa SQLAlchemy internamente para su estado
@@ -64,13 +64,15 @@ config = rx.Config(
 )
 
 # Configuración adicional para producción en Render
-if os.getenv("RENDER"):
+if os.getenv("RENDER") or os.getenv("REFLEX_ENV") == "prod":
     # En Render, ajustar configuraciones específicas
-    config.backend_port = int(os.getenv("PORT", "8000"))
+    render_port = int(os.getenv("PORT", "8000"))
+    config.backend_port = render_port
+    config.frontend_port = render_port  # Frontend y backend en el mismo puerto
     
     # Asegurar que el frontend apunte al backend correcto
     # Render proporciona la URL del servicio en RENDER_EXTERNAL_URL
-    backend_url = os.getenv("RENDER_EXTERNAL_URL", f"http://0.0.0.0:{config.backend_port}")
+    backend_url = os.getenv("RENDER_EXTERNAL_URL", f"http://0.0.0.0:{render_port}")
     config.api_url = backend_url
     
     # Configurar el origen del frontend para CORS
