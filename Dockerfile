@@ -232,13 +232,12 @@ main() {
     echo "🔧 Inicializando aplicación Reflex..."
     reflex init --name asistente_legal_constitucional_con_ia || true
     
-    # Exportar frontend para producción
-    echo "📦 Exportando frontend..."
-    reflex export --frontend-only --no-zip || true
+    # NO exportar frontend - dejar que Reflex maneje todo integrado
+    echo "� Reflex manejará frontend y backend integrados..."
     
-    # Iniciar Reflex especificando AMBOS puertos al mismo valor
-    # Frontend y Backend en el MISMO puerto para Render
-    exec reflex run --env prod --backend-port $PORT --frontend-port $PORT
+    # Iniciar Reflex SOLO especificando backend-port
+    # El servidor integrado manejará frontend automáticamente
+    exec reflex run --env prod --backend-port $PORT
 }
 
 # Ejecutar función principal

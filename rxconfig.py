@@ -7,10 +7,14 @@ el puerto 10000 para todos los servicios.
 import os
 import reflex as rx
 
-# Configuración para Render - sin configuración de puertos
+# Configuración para Render - puerto unificado
 # Render maneja el puerto automáticamente
 config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
+    
+    # Puerto unificado - frontend y backend en el mismo puerto
+    backend_port=int(os.getenv("PORT", "8000")),
+    frontend_port=int(os.getenv("PORT", "8000")),
     
     # Base de datos
     db_url=os.getenv(
