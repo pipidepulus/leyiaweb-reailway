@@ -232,13 +232,12 @@ main() {
     echo "🔧 Inicializando aplicación Reflex..."
     reflex init --name asistente_legal_constitucional_con_ia || true
     
-    # Iniciar usando gunicorn con uvicorn workers (ASGI)
+    # Iniciar usando gunicorn con uvicorn workers (ASGI) - comando simplificado
     exec gunicorn wsgi:application \
         --bind 0.0.0.0:$PORT \
         --worker-class uvicorn.workers.UvicornWorker \
         --workers 1 \
         --timeout 120 \
-        --keepalive 2 \
         --max-requests 1000 \
         --max-requests-jitter 50 \
         --access-logfile -
