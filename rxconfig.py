@@ -56,9 +56,8 @@ config = rx.Config(
     # next_compression: Habilitar compresión en Next.js
     next_compression=True,
     
-    # Configuración de logs
-    # En producción, reducir verbosidad
-    loglevel=rx.LogLevel.INFO if os.getenv("REFLEX_ENV") == "prod" else rx.LogLevel.DEBUG,
+    # Configuración de logs - SIMPLIFICADO para evitar errores de enum
+    # Usar default de Reflex en lugar de configurar manualmente
 )
 
 # Configuración adicional para producción en Render
