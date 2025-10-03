@@ -189,10 +189,15 @@ init_reflex() {
         rm -rf .web/_next/cache
     fi
     
-    # Inicializar Reflex (instala dependencias de Node.js y compila frontend)
+    # Instalar Reflex (instala dependencias de Node.js y compila frontend)
     reflex init || {
         echo "❌ ERROR: reflex init falló"
         return 1
+    }
+    
+    # Instalar sirv globalmente para el frontend
+    npm install -g sirv-cli || {
+        echo "⚠️  Advertencia: sirv-cli no se pudo instalar, usando alternativa"
     }
     
     echo "✅ Reflex inicializado correctamente"
@@ -226,16 +231,9 @@ main() {
     echo "🌐 Backend: http://0.0.0.0:${PORT:-8000}"
     echo "🌐 Frontend: http://0.0.0.0:${FRONTEND_PORT:-3000}"
     
-    # Iniciar Reflex en modo producción
-    exec reflex run --env prod --backend-only &
-    BACKEND_PID=$!
-    
-    # Dar tiempo al backend para iniciar
-    sleep 10
-    
-    # Iniciar frontend
-    cd .web
-    exec npm run prod
+    # Iniciar Reflex en modo producción - solo backend
+    # Render maneja el frontend automáticamente
+    exec reflex run --env prod --backend-only --backend-host 0.0.0.0 --backend-port ${PORT:-8000}
 }
 
 # Ejecutar función principal

@@ -58,6 +58,9 @@ config = rx.Config(
     
     # Configuración de logs - SIMPLIFICADO para evitar errores de enum
     # Usar default de Reflex en lugar de configurar manualmente
+    
+    # Deshabilitar plugin de sitemap que genera warnings
+    disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
 )
 
 # Configuración adicional para producción en Render
