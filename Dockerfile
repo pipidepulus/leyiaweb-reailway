@@ -236,9 +236,9 @@ main() {
     echo "📦 Exportando frontend..."
     reflex export --frontend-only --no-zip || true
     
-    # Iniciar Reflex en modo producción con servidor integrado
-    # Usar --backend-port en lugar de --port
-    exec reflex run --env prod --backend-port $PORT
+    # Iniciar Reflex especificando AMBOS puertos al mismo valor
+    # Frontend y Backend en el MISMO puerto para Render
+    exec reflex run --env prod --backend-port $PORT --frontend-port $PORT
 }
 
 # Ejecutar función principal
