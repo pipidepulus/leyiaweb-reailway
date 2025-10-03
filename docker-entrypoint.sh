@@ -84,14 +84,5 @@ PY
   fi
 fi
 
-echo "[entrypoint] Starting Reflex backend only on :${PORT:-8000} (frontend pre-exported) ..."
-
-# Intentar usar --no-frontend (si la versión lo soporta); si falla, fallback a run normal.
-if reflex run --help 2>/dev/null | grep -q -- '--no-frontend'; then
-  exec reflex run --no-frontend --env "${REFLEX_ENV:-dev}" \
-      --backend-host "${BACKEND_HOST:-0.0.0.0}" \
-      --backend-port "${PORT:-8000}" "$@"
-else
-  echo "[entrypoint] Opción --no-frontend no disponible; usando run normal (puede abrir puerto 3000)." >&2
-  exec reflex run --env "${REFLEX_ENV:-dev}" --backend-host "${BACKEND_HOST:-0.0.0.0}" --backend-port "${PORT:-8000}" "$@"
-fi
+echo "[entrypoint] Starting Reflex (backend :${PORT:-8000} / frontend :${FRONTEND_PORT:-3000})..."
+exec reflex run --env "${REFLEX_ENV:-dev}" --backend-host "${BACKEND_HOST:-0.0.0.0}" --backend-port "${PORT:-8000}" "$@"

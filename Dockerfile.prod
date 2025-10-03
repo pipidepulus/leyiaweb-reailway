@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl unzip libxml2 libxslt1.1 libpq5 ca-certificates git && \
+    curl unzip libxml2 libxslt1.1 libpq5 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
@@ -16,14 +16,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
-# Pre-build frontend & static assets once (production export) to avoid runtime dev server.
-ENV REFLEX_ENV=prod \
-    DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder \
-    API_URL=http://localhost:10000
-RUN echo "[build] Running reflex export (production with dummy DB)" && \
-    reflex export --env prod --no-zip || (echo "[build] reflex export failed" && exit 1)
-
-# Etapa final (runtime más ligera reutilizando /usr/local del build)
+# Etapa final (runtime)
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -44,7 +37,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=build /usr/local /usr/local
 COPY --from=build /app /app
 
-# Aseguramos directorios mínimos (aunque en Postgres no se usaría sqlite, se mantiene upload dir)
 RUN useradd -m appuser && \
     mkdir -p /app/uploaded_files && \
     chown -R appuser:appuser /app
@@ -53,7 +45,6 @@ USER appuser
 
 EXPOSE 10000
 
-# Reutilizamos el entrypoint genérico ya existente (aplica migraciones y lanza reflex)
 COPY docker-entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
