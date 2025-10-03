@@ -19,24 +19,32 @@ os.environ.setdefault("REFLEX_ENV", "prod")
 
 # Importar la aplicación Reflex
 from asistente_legal_constitucional_con_ia.asistente_legal_constitucional_con_ia import app
+import reflex as rx
 
 print("🚀 Preparando aplicación ASGI para Render...")
 
-# Obtener la aplicación ASGI directamente
-# En Reflex 0.8.13, la aplicación ASGI está disponible directamente
+# En modo producción, Reflex necesita compilar primero
 try:
-    # Método correcto para obtener la app ASGI en Reflex 0.8.13
-    application = app.api
+    # Compilar la aplicación para producción
+    print("🔧 Compilando aplicación para producción...")
+    rx.export.export(frontend=True, backend=False, zip=False)
+    print("✅ Frontend compilado exitosamente")
+except Exception as e:
+    print(f"⚠️ Error compilando frontend: {e}")
+
+# Obtener la aplicación ASGI directamente del módulo app
+try:
+    # En Reflex, la aplicación ASGI está en app.app
+    application = app.app
     print("✅ Aplicación ASGI obtenida correctamente")
 except AttributeError:
     try:
-        # Método alternativo
-        application = app._app
-        print("✅ Aplicación ASGI obtenida (método alternativo)")
-    except AttributeError:
-        # Fallback: usar la app directamente
+        # Método alternativo: usar la app directamente
         application = app
         print("✅ Usando aplicación directamente como fallback")
+    except Exception as e:
+        print(f"❌ Error obteniendo aplicación: {e}")
+        raise
 
 # Para compatibilidad con gunicorn
 app_instance = application

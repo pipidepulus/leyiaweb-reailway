@@ -2,8 +2,8 @@
 
 Cambios aplicados para forzar reconstrucción en Render:
 
-Timestamp: 2025-10-03T02:50:00Z
-- ✅ FIX: Corregido wsgi.py para API correcta de Reflex 0.8.13
-- ✅ Error AttributeError: 'App' object has no attribute 'backend' resuelto
-- ✅ Usar app.api para obtener aplicación ASGI
-- ✅ Eliminado app.compile() que no existe en esta versión
+Timestamp: 2025-10-03T02:57:00Z
+- ✅ RETORNO: Volver a usar reflex run pero con --port $PORT
+- ✅ Servidor iniciando correctamente pero 404 en rutas
+- ✅ Usar servidor integrado de Reflex que maneja estáticos correctamente
+- ✅ Exportar frontend antes de iniciar servidor
