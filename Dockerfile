@@ -225,12 +225,23 @@ main() {
     # Exportar frontend (opcional)
     export_frontend
     
-    echo "🎯 Iniciando aplicación Reflex en modo producción..."
-    echo "🌐 Render manejará el puerto: $PORT"
+    echo "🎯 Iniciando aplicación con gunicorn + uvicorn..."
+    echo "🌐 Puerto de Render: $PORT"
     
-    # Iniciar Reflex en modo producción sin especificar puertos
-    # Reflex detectará automáticamente la variable PORT de Render
-    exec reflex run --env prod
+    # Inicializar aplicación Reflex sin servidor
+    echo "🔧 Inicializando aplicación Reflex..."
+    reflex init --name asistente_legal_constitucional_con_ia || true
+    
+    # Iniciar usando gunicorn con uvicorn workers (ASGI)
+    exec gunicorn wsgi:application \
+        --bind 0.0.0.0:$PORT \
+        --worker-class uvicorn.workers.UvicornWorker \
+        --workers 1 \
+        --timeout 120 \
+        --keepalive 2 \
+        --max-requests 1000 \
+        --max-requests-jitter 50 \
+        --access-logfile -
 }
 
 # Ejecutar función principal
