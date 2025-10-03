@@ -237,8 +237,8 @@ main() {
     reflex export --frontend-only --no-zip || true
     
     # Iniciar Reflex en modo producción con servidor integrado
-    # Usar variable PORT de Render
-    exec reflex run --env prod --port $PORT
+    # Usar --backend-port en lugar de --port
+    exec reflex run --env prod --backend-port $PORT
 }
 
 # Ejecutar función principal
