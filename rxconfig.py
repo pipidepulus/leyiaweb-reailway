@@ -1,32 +1,52 @@
-# rxconfig.py (Versión Canónica)
-
-import os
 import reflex as rx
+import os
 
-# El puerto que Render nos asigna.
-RENDER_PORT = int(os.getenv("PORT", "8000"))
+# Render setea estas variables automáticamente
+IS_RENDER = os.environ.get("RENDER") is not None
+PORT = int(os.environ.get("PORT", 8000))
 
-config = rx.Config(
-    app_name="asistente_legal_constitucional_con_ia",
+# Configuración de base de datos
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///legal_assistant.db")
+
+# Configuración de la base de datos
+if IS_RENDER:
+    # En producción usar PostgreSQL de Render
+    DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///legal_assistant.db")
+else:
+    # En desarrollo usar SQLite
+    DATABASE_URL = "sqlite:///legal_assistant.db"
+
+if IS_RENDER:
+    # En Render - backend separado
+    hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    api_url = f"https://{hostname}"
     
-    # SOLO definimos el backend.
-    # En producción, Reflex es lo suficientemente inteligente para saber
-    # que el backend también debe servir al frontend en este puerto.
-    backend_host="0.0.0.0",
-    backend_port=RENDER_PORT,
+    # CORS: dominios que pueden acceder al backend
+    cors_origins = [
+        api_url,  # El propio backend: https://legalcolrag-noclerk.onrender.com
+        "https://leyiaweb.onrender.com",  # Tu frontend
+    ]
     
-    # La URL pública es crucial
-    api_url=os.getenv("API_URL"),
-    
-    # Base de datos y entorno
-    db_url=os.getenv("DATABASE_URL"),
-    env=rx.Env.PROD,
-    
-    # CORS y plugins
-    cors_allowed_origins=os.getenv("CORS_ALLOWED_ORIGINS", "").split(","),
-    disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
-    
-    # Opcional: Configuraciones de producción
-    telemetry_enabled=False,
-    timeout=120,
-)
+    config = rx.Config(
+        app_name="asistente_legal_constitucional_con_ia",
+        backend_host="0.0.0.0",
+        backend_port=PORT,
+        api_url=api_url,
+        cors_allowed_origins=cors_origins,
+        tailwind=None,
+        show_built_with_reflex=False,
+        db_url=DATABASE_URL,
+    )
+else:
+    # Desarrollo local
+    config = rx.Config(
+        app_name="asistente_legal_constitucional_con_ia",
+        backend_host="0.0.0.0",
+        backend_port=PORT,
+        frontend_port=3000,
+        api_url="http://localhost:8000",
+        cors_allowed_origins=["http://localhost:3000"],
+        tailwind=None,
+        show_built_with_reflex=False,
+        db_url=DATABASE_URL,
+    )
