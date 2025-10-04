@@ -1,4 +1,4 @@
-# Dockerfile Refactorizado y Final para Render (v6 - Final y Completo)
+# Dockerfile Refactorizado y Final para Render (v7 - Final Definitivo)
 
 # ====================================================================
 # Etapa 1: Builder
@@ -54,10 +54,11 @@ RUN reflex export --frontend-only
 FROM python:3.12-slim AS runtime
 
 # Instalar solo las dependencias de sistema necesarias para ejecutar
-# AÑADIDO 'unzip' aquí también, porque `reflex run` lo necesita al arrancar.
+# AÑADIDO 'curl', que es requerido por el script de instalación de bun al arrancar.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     unzip \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Crear un usuario no-root para mayor seguridad
