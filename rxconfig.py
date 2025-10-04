@@ -45,11 +45,12 @@ if IS_RENDER:
         app_name="asistente_legal_constitucional_con_ia",
         backend_host="0.0.0.0",
         backend_port=PORT,
-        # sin frontend_port -> single-port mode
+        # sin frontend_port -> single-port mode (Reflex todavía puede lanzar server estático separado según versión)
         cors_allowed_origins=cors_origins,
         show_built_with_reflex=False,
         tailwind=None,
         db_url=DATABASE_URL,
+        disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
     )
 elif IS_LOCAL_PROD:
     # Producción local: comportamiento similar a Render, pero en localhost.
@@ -71,6 +72,7 @@ elif IS_LOCAL_PROD:
         show_built_with_reflex=False,
         tailwind=None,
         db_url=DATABASE_URL,
+        disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
     )
 else:
     # Desarrollo: frontend (Next) corre en FRONTEND_PORT (default 3000) con hot-reload.
@@ -91,4 +93,5 @@ else:
         show_built_with_reflex=False,
         tailwind=None,
         db_url=DATABASE_URL,
+        disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
     )
