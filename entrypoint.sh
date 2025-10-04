@@ -57,10 +57,8 @@ else
 fi
 
 # Lanzar aplicación Reflex en modo producción.
-PUBLIC_PORT="${PORT:-10000}"     # Render asigna este dinámicamente
+PORT="${PORT:-10000}"
 BACKEND_HOST="${BACKEND_HOST:-0.0.0.0}"
-BACKEND_PORT="${BACKEND_PORT:-8000}"  # Puerto interno para API
 
-echo "[entrypoint] Iniciando Reflex (frontend_port=${PUBLIC_PORT}, backend_port=${BACKEND_PORT}) ..."
-export PORT="${PUBLIC_PORT}"  # Para que rxconfig lo lea como frontend
-exec reflex run --env prod --backend-host "${BACKEND_HOST}" --backend-port "${BACKEND_PORT}" 2>&1
+echo "[entrypoint] Iniciando Reflex single-port en ${PORT} ..."
+exec reflex run --env prod --backend-host "${BACKEND_HOST}" --backend-port "${PORT}" 2>&1
