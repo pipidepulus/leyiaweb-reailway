@@ -17,8 +17,14 @@ COPY requirements.txt .
 
 # Instala las dependencias del proyecto.
 # Añadimos 'unzip' por si reflex lo necesita internamente.
-RUN apt-get update && apt-get install -y unzip  && rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir -r requirements.txt
+# Instalamos dependencias del sistema: curl para instalar Node (frontend build) y unzip.
+RUN apt-get update && apt-get install -y curl unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r requirements.txt \
+    # Instalar Node.js (LTS) para que Reflex pueda construir el frontend.
+    && curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get update && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copia el resto del código de tu aplicación al directorio de trabajo.
 COPY . .
@@ -27,8 +33,7 @@ COPY . .
 # Render te dará una variable de entorno $PORT, que usaremos en el CMD.
 EXPOSE 8000
 
-# El comando para iniciar SOLAMENTE el backend.
-# - Se enlaza a 0.0.0.0 para ser accesible desde fuera del contenedor.
-# - Usa la variable $PORT que Render provee.
-# - --no-frontend evita que intente iniciar el servidor de Node.js.
-CMD ["sh", "-c", "exec reflex run --env prod --backend-only --backend-host 0.0.0.0 --backend-port ${PORT}"]
+# Ejecutar la app completa (frontend + backend) en modo producción.
+# Render inyecta PORT; Reflex usará ese backend_port y expondrá el frontend en el mismo servicio.
+# NOTA: quitamos --backend-only para evitar el 404 del navegador.
+CMD ["sh", "-c", "exec reflex run --env prod --backend-host 0.0.0.0 --backend-port ${PORT}"]
