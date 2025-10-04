@@ -39,7 +39,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Exponer el puerto que Render utilizará
-EXPOSE 10000
+EXPOSE 8000
 
 # El comando de inicio. Ahora `reflex run` (como appuser) podrá crear
 # el directorio .web dentro de /app sin problemas.
