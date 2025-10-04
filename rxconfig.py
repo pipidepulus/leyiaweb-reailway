@@ -37,16 +37,28 @@ else:
     DATABASE_URL = "sqlite:///legal_assistant.db"
 
 if IS_RENDER:
-    # En Render: usar un único puerto (PORT) para backend + websockets + servir frontend.
-    # No definimos frontend_port para evitar puertos múltiples; Reflex sirve el build y expone websockets en mismo origen.
+    # Modo Render (backend-only + static site separado):
+    #  - El servicio backend se despliega como Web Service (python) ejecutando: reflex run --env prod --backend-only
+    #  - El frontend se sirve como Static Site con 'reflex export --frontend-only'
+    #  - Necesitamos un api_url absoluto para que el JS del static site apunte al backend.
+    # Variables de entorno esperadas (configuradas manualmente en Render):
+    #   API_BASE = https://<dominio-del-backend> (en backend puede omitirse y se infiere)
+    #   FRONTEND_ORIGIN = https://<dominio-del-static-site> (para CORS)
     hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-    cors_origins = [f"https://{hostname}"] if hostname else []
+    inferred_backend = f"https://{hostname}" if hostname else None
+    api_base = os.environ.get("API_BASE", inferred_backend or "")
+    frontend_origin = os.environ.get("FRONTEND_ORIGIN")
+    cors_list = []
+    if api_base:
+        cors_list.append(api_base)
+    if frontend_origin:
+        cors_list.append(frontend_origin)
     config = rx.Config(
         app_name="asistente_legal_constitucional_con_ia",
         backend_host="0.0.0.0",
-        backend_port=PORT,
-        # sin frontend_port -> single-port mode (Reflex todavía puede lanzar server estático separado según versión)
-        cors_allowed_origins=cors_origins,
+        backend_port=PORT,  # Render asigna $PORT al backend service
+        api_url=api_base if api_base else None,
+        cors_allowed_origins=cors_list,
         show_built_with_reflex=False,
         tailwind=None,
         db_url=DATABASE_URL,
