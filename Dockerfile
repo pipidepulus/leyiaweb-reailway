@@ -1,4 +1,4 @@
-# Dockerfile Refactorizado y Final para Render (v11 - Permisos Corregidos)
+# Dockerfile Refactorizado y Final para Render (v12 - Permisos Definitivos)
 
 FROM python:3.12-slim
 
@@ -18,31 +18,29 @@ RUN useradd --system --create-home appuser
 # Establecer el directorio de trabajo
 WORKDIR /app
 
-# Crear el entorno virtual COMO ROOT, pero asignarlo al appuser.
-# De esta forma, el appuser puede usarlo pero no crearlo en un directorio root.
-ENV VENV_PATH=/app/venv
-RUN python -m venv $VENV_PATH && \
-    chown -R appuser:appuser $VENV_PATH
+# Copiar todos los archivos de la aplicación
+COPY . .
 
-# Activar el entorno virtual para los siguientes comandos
+# --- LA SOLUCIÓN CLAVE ---
+# Cambiar la propiedad de TODO el directorio de la aplicación al usuario no-root.
+# Esto debe hacerse ANTES de cambiar de usuario.
+RUN chown -R appuser:appuser /app
+
+# AHORA, cambiar al usuario no-root
+USER appuser
+
+# Crear y activar un entorno virtual (ahora appuser tiene permisos para hacerlo)
+ENV VENV_PATH=/app/venv
+RUN python -m venv $VENV_PATH
 ENV PATH="$VENV_PATH/bin:$PATH"
 
-# Copiar solo los archivos de requerimientos primero para aprovechar la caché de Docker
-COPY --chown=appuser:appuser requirements.txt .
-
-# Instalar dependencias de Python COMO ROOT (algunos paquetes lo necesitan)
+# Instalar dependencias de Python
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
-
-# Copiar el resto del código de la aplicación
-COPY --chown=appuser:appuser . .
-
-# AHORA, cambiar al usuario no-root para la ejecución final
-USER appuser
 
 # Exponer el puerto que Render utilizará
 EXPOSE 10000
 
-# El comando de inicio. Reflex se encargará de compilar el frontend
-# la primera vez que arranque el contenedor.
+# El comando de inicio. Ahora `reflex run` (como appuser) podrá crear
+# el directorio .web dentro de /app sin problemas.
 CMD ["reflex", "run", "--env", "prod"]
