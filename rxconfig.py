@@ -37,13 +37,17 @@ else:
     DATABASE_URL = "sqlite:///legal_assistant.db"
 
 if IS_RENDER:
-    # Single service Render: no fijamos api_url para permitir rutas relativas.
+    # En Render: usar el puerto asignado ($PORT) para servir el FRONTEND.
+    # El backend se sirve en un puerto interno (BACKEND_PORT) que no necesita exponerse externamente.
     hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     cors_origins = [f"https://{hostname}"] if hostname else []
+    backend_internal_port = int(os.environ.get("BACKEND_PORT", 8000))
+    # Nota: Reflex respetará el backend_port definido en config, y el frontend_port será $PORT (PORT variable).
     config = rx.Config(
         app_name="asistente_legal_constitucional_con_ia",
         backend_host="0.0.0.0",
-        backend_port=PORT,
+        backend_port=backend_internal_port,
+        frontend_port=PORT,  # Forzamos el frontend a escuchar en el puerto asignado por Render.
         cors_allowed_origins=cors_origins,
         show_built_with_reflex=False,
         tailwind=None,

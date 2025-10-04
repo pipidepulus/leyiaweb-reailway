@@ -34,7 +34,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
 
 # Copiamos solo requirements primero para cache de capas
 COPY requirements.txt ./
-RUN pip install -r requirements.txt
+# Aseguramos versión correcta de reflex (override si la imagen base trae otra).
+RUN pip install --upgrade pip \
+	&& pip install -r requirements.txt \
+	&& pip install --no-cache-dir reflex==0.8.13
 
 # Etapa 2: Build de la app -------------------------------------------------
 FROM base AS build
