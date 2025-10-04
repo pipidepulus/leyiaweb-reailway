@@ -70,6 +70,12 @@ def main():
     import uvicorn  # import tardío
     host = '0.0.0.0'
     port = int(os.environ.get('PORT', '8000'))
+    # Log de versión de Reflex para confirmar que no estamos en una versión vieja con bug.
+    try:
+        import reflex
+        print(f"[run_backend_render] Reflex version: {reflex.__version__}")
+    except Exception:
+        print("[run_backend_render] No se pudo obtener la versión de Reflex")
     print(f"[run_backend_render] Iniciando backend en {host}:{port}")
     uvicorn.run(fastapi_app, host=host, port=port, reload=False, workers=1)
 
