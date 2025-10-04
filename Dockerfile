@@ -1,4 +1,4 @@
-# Dockerfile Refactorizado y Optimizado para Render
+# Dockerfile Refactorizado y Corregido para Render
 
 # ====================================================================
 # Etapa 1: Builder
@@ -7,11 +7,13 @@
 FROM python:3.12-slim AS builder
 
 # Instalar dependencias del sistema necesarias para la compilación
+# AÑADIDO 'unzip' que es requerido por el instalador de Bun de Reflex
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     curl \
     gnupg \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Node.js (requerido por Reflex para construir el frontend)
@@ -61,7 +63,8 @@ COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
 COPY --from=builder --chown=appuser:appuser /app /home/appuser
 
 # Activar el entorno virtual
-ENV PATH="/home/appuser/venv/bin:$PATH"
+# Nota: WORKDIR ya está establecido a /home/appuser, por lo que el venv estará en el PATH relativo
+ENV PATH="/home/appuser/opt/venv/bin:$PATH"
 
 # Exponer el puerto que Render utilizará (documentación)
 # Render establece la variable $PORT a 10000 por defecto
