@@ -1,46 +1,34 @@
-# Dockerfile Refactorizado y Final para Render (v12 - Permisos Definitivos)
+# Dockerfile.backend
 
+# Usa una imagen base oficial de Python.
 FROM python:3.12-slim
 
-# Instalar todas las dependencias de sistema necesarias
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
-    curl \
-    gnupg \
-    unzip \
-    nodejs \
-    && rm -rf /var/lib/apt/lists/*
+ARG CACHE_BUSTER=1
 
-# Crear un usuario no-root para la aplicación
-RUN useradd --system --create-home appuser
 
-# Establecer el directorio de trabajo
+# Establece variables de entorno para un comportamiento óptimo de Python en Docker.
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
 WORKDIR /app
 
-# Copiar todos los archivos de la aplicación
-COPY . .
+# Copia el archivo de requerimientos primero para aprovechar el cache de Docker.
+COPY requirements.txt .
 
-# --- LA SOLUCIÓN CLAVE ---
-# Cambiar la propiedad de TODO el directorio de la aplicación al usuario no-root.
-# Esto debe hacerse ANTES de cambiar de usuario.
-RUN chown -R appuser:appuser /app
-
-# AHORA, cambiar al usuario no-root
-USER appuser
-
-# Crear y activar un entorno virtual (ahora appuser tiene permisos para hacerlo)
-ENV VENV_PATH=/app/venv
-RUN python -m venv $VENV_PATH
-ENV PATH="$VENV_PATH/bin:$PATH"
-
-# Instalar dependencias de Python
-RUN pip install --no-cache-dir --upgrade pip && \
+# Instala las dependencias del proyecto.
+# Añadimos 'unzip' por si reflex lo necesita internamente.
+RUN apt-get update && apt-get install -y unzip  && rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir -r requirements.txt
 
-# Exponer el puerto que Render utilizará
+# Copia el resto del código de tu aplicación al directorio de trabajo.
+COPY . .
+
+# Expone el puerto que usará el backend. Render lo mapeará automáticamente.
+# Render te dará una variable de entorno $PORT, que usaremos en el CMD.
 EXPOSE 8000
 
-# El comando de inicio. Ahora `reflex run` (como appuser) podrá crear
-# el directorio .web dentro de /app sin problemas.
-CMD ["reflex", "run", "--env", "prod"]
+# El comando para iniciar SOLAMENTE el backend.
+# - Se enlaza a 0.0.0.0 para ser accesible desde fuera del contenedor.
+# - Usa la variable $PORT que Render provee.
+# - --no-frontend evita que intente iniciar el servidor de Node.js.
+CMD ["sh", "-c", "exec reflex run --env prod --backend-only --backend-host 0.0.0.0 --backend-port ${PORT}"]
