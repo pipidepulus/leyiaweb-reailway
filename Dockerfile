@@ -1,4 +1,4 @@
-# Dockerfile Refactorizado y Final para Render (v5 - Con Script)
+# Dockerfile Refactorizado y Final para Render (v6 - Final y Completo)
 
 # ====================================================================
 # Etapa 1: Builder
@@ -33,7 +33,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copiar el resto del código de la aplicación
-# IMPORTANTE: Asegúrate de que el archivo `create_build_db.py` está en tu repositorio.
 COPY . .
 
 # --- SOLUCIÓN PARA EL BUILD ---
@@ -55,8 +54,10 @@ RUN reflex export --frontend-only
 FROM python:3.12-slim AS runtime
 
 # Instalar solo las dependencias de sistema necesarias para ejecutar
+# AÑADIDO 'unzip' aquí también, porque `reflex run` lo necesita al arrancar.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Crear un usuario no-root para mayor seguridad
