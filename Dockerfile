@@ -1,4 +1,4 @@
-# Dockerfile Refactorizado y Final para Render
+# Dockerfile Refactorizado y Final para Render (v3)
 
 # ====================================================================
 # Etapa 1: Builder
@@ -35,13 +35,19 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiar el resto del código de la aplicación
 COPY . .
 
-# Proveer una URL de BD falsa SÓLO para el tiempo de construcción.
-# Esto es necesario porque `reflex export` intenta inicializar el estado.
-# Esta variable será sobrescrita por la DATABASE_URL de Render en tiempo de ejecución.
+# --- SOLUCIÓN PARA EL BUILD ---
+# 1. Proveer una URL de BD falsa para el tiempo de construcción.
 ENV DATABASE_URL="sqlite:///dummy_build.db"
 
-# ¡Paso clave! Pre-compilar el frontend.
+# 2. ¡NUEVO PASO! Crear las tablas en la BD "dummy".
+# Esto es necesario para que `reflex export` pueda consultar las tablas sin fallar.
+# Asume que tu archivo principal se llama como tu app.
+# Si tu archivo principal se llama diferente (ej: `app.py`), cámbialo abajo.
+RUN python -c "import reflex as rx; from sqlmodel import SQLModel; import asistente_legal_constitucional_con_ia.asistente_legal_constitucional_con_ia; engine = rx.db.get_engine(); SQLModel.metadata.create_all(engine)"
+
+# 3. ¡Paso clave! Pre-compilar el frontend.
 RUN reflex export --frontend-only
+# --- FIN DE LA SOLUCIÓN ---
 
 
 # ====================================================================
@@ -61,10 +67,10 @@ WORKDIR /home/appuser
 USER appuser
 
 # Copiar el entorno virtual con las dependencias de Python desde el builder
-COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
+COPY --from-builder --chown=appuser:appuser /opt/venv /opt/venv
 
 # Copiar la aplicación y el frontend pre-compilado desde el builder
-COPY --from=builder --chown=appuser:appuser /app /home/appuser
+COPY --from-builder --chown=appuser:appuser /app /home/appuser
 
 # Activar el entorno virtual
 ENV PATH="/opt/venv/bin:$PATH"
