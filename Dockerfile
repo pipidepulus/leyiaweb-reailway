@@ -38,7 +38,7 @@ COPY . .
 
 # ¡Paso clave! Pre-compilar el frontend.
 # Esto se hace UNA VEZ durante el build, no en cada arranque.
-# RUN reflex export --frontend-only
+RUN reflex export --frontend-only
 
 # ====================================================================
 # Etapa 2: Runtime
