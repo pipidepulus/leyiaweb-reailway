@@ -1,56 +1,43 @@
-"""Archivo de configuración de Reflex para despliegue en Render.
-
-Configuración optimizada para producción en Render.com que asigna automáticamente
-el puerto 10000 para todos los servicios.
-"""
+# rxconfig.py
 
 import os
 import reflex as rx
 
-# Configuración para Render - puerto unificado
-# Render maneja el puerto automáticamente
+# La URL pública de tu aplicación. Es CRUCIAL para que los WebSockets funcionen.
+# Render la inyectará a través de una variable de entorno que configurarás.
+API_URL = os.getenv("API_URL")
+if not API_URL:
+    # Esta advertencia es útil para el desarrollo local si olvidas configurar la URL.
+    print("⚠️  ADVERTENCIA: La variable de entorno API_URL no está configurada.")
+    print("   En producción, esto causará que los WebSockets fallen.")
+    print("   Estableciendo un valor predeterminado para desarrollo local: http://localhost:8000")
+    API_URL = "http://localhost:8000"
+
+
+# Orígenes permitidos para CORS, leídos desde una variable de entorno.
+# En Render, deberías establecer esto a la URL de tu frontend, ej: "https://tu-app.onrender.com"
+CORS_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
+
 config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
     
-    # Puerto unificado - frontend y backend en el mismo puerto
-    backend_port=int(os.getenv("PORT", "8000")),
-    frontend_port=int(os.getenv("PORT", "8000")),
+    # Configuración de red para Render
+    backend_host="0.0.0.0",  # Imprescindible para escuchar dentro de un contenedor Docker
+    backend_port=int(os.getenv("PORT", "8000")), # Render asigna el puerto a través de esta variable
+    api_url=API_URL, # Informa al frontend dónde encontrar el backend
     
-    # Base de datos
-    db_url=os.getenv(
-        "DATABASE_URL",
-        "postgresql://leyia:leyia@db:5432/leyia"
-    ),
+    # Configuración de base de datos
+    # Render inyectará automáticamente la URL de tu base de datos PostgreSQL aquí
+    db_url=os.getenv("DATABASE_URL"),
     
-    # Redis opcional
-    redis_url=os.getenv("REDIS_URL", None),
-    
-    # Entorno de producción
+    # Forzar siempre el entorno de producción
     env=rx.Env.PROD,
     
-    # CORS para Render
-    cors_allowed_origins=[
-        "https://leyiaweb.onrender.com",
-        "https://*.onrender.com",
-        "*",  # Permitir todos los orígenes en producción
-    ],
+    # Orígenes CORS
+    cors_allowed_origins=CORS_ORIGINS,
     
-    # Configuración de producción
+    # Configuraciones adicionales de producción recomendadas
     telemetry_enabled=False,
-    timeout=120,
-    
-    # Hosts para Render
-    backend_host="0.0.0.0",
-    frontend_host="0.0.0.0",
-    
-    # Deshabilitar plugin de sitemap que genera warnings
-    disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
+    timeout=120, # Aumentar el timeout para tareas largas
 )
-
-# Notas para Render:
-# - Render asigna automáticamente puerto 10000
-# - DATABASE_URL se configura automáticamente
-# - Variables de entorno requeridas:
-#   * OPENAI_API_KEY
-#   * ASSEMBLYAI_API_KEY  
-#   * TAVILY_API_KEY
