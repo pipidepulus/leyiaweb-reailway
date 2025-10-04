@@ -42,7 +42,9 @@ services:
     environment:
       # Forzamos DATABASE_URL apuntando al servicio db
       DATABASE_URL: postgresql://${POSTGRES_USER:-leyia}:${POSTGRES_PASSWORD:-leyia}@db:5432/${POSTGRES_DB:-leyia}
+      # Ejecutaremos en modo desarrollo para tener hot-reload
       REFLEX_ENV: ${REFLEX_ENV:-dev}
+      # Backend (API) por defecto 8000; frontend dev server 3000
       PORT: ${PORT:-8000}
       FRONTEND_PORT: ${FRONTEND_PORT:-3000}
       # Control ejecución migraciones (1=on, 0=off)
@@ -58,6 +60,8 @@ services:
       - "8000:8000"
       - "3000:3000"
     restart: unless-stopped
+    # En desarrollo queremos ver el frontend separado (live reload)
+    command: sh -c "reflex run --backend-host 0.0.0.0 --backend-port 8000"
     # Healthcheck simple (puedes cambiar a /api/health si añades endpoint)
     healthcheck:
       # Intenta primero un endpoint de salud dedicado (si lo agregas luego), luego root backend y finalmente frontend.
