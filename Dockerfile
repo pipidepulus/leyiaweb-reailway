@@ -1,4 +1,4 @@
-# Dockerfile Refactorizado y Final para Render (v4 - Sintaxis Corregida)
+# Dockerfile Refactorizado y Final para Render (v5 - Con Script)
 
 # ====================================================================
 # Etapa 1: Builder
@@ -33,14 +33,15 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copiar el resto del código de la aplicación
+# IMPORTANTE: Asegúrate de que el archivo `create_build_db.py` está en tu repositorio.
 COPY . .
 
 # --- SOLUCIÓN PARA EL BUILD ---
 # 1. Proveer una URL de BD falsa para el tiempo de construcción.
 ENV DATABASE_URL="sqlite:///dummy_build.db"
 
-# 2. Crear las tablas en la BD "dummy".
-RUN python -c "import reflex as rx; from sqlmodel import SQLModel; import asistente_legal_constitucional_con_ia.asistente_legal_constitucional_con_ia; engine = rx.db.get_engine(); SQLModel.metadata.create_all(engine)"
+# 2. Ejecutar nuestro script para crear las tablas en la BD "dummy".
+RUN python create_build_db.py
 
 # 3. Pre-compilar el frontend.
 RUN reflex export --frontend-only
@@ -64,11 +65,9 @@ WORKDIR /home/appuser
 USER appuser
 
 # Copiar el entorno virtual con las dependencias de Python desde el builder
-# CORRECCIÓN DE SINTAXIS: --from=builder
 COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
 
 # Copiar la aplicación y el frontend pre-compilado desde el builder
-# CORRECCIÓN DE SINTAXIS: --from=builder
 COPY --from=builder --chown=appuser:appuser /app /home/appuser
 
 # Activar el entorno virtual
