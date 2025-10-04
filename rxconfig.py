@@ -46,11 +46,11 @@ if IS_RENDER:
     #   FRONTEND_ORIGIN = https://<dominio-del-static-site> (para CORS)
     hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     inferred_backend = f"https://{hostname}" if hostname else None
-    api_base = os.environ.get("API_BASE", inferred_backend or "")
+    # API_BASE debe apuntar al dominio público del backend. Si no está aún (primer deploy)
+    # usamos un placeholder para evitar que export falle esperando un string.
+    api_base = os.environ.get("API_BASE") or inferred_backend or "http://localhost"
     frontend_origin = os.environ.get("FRONTEND_ORIGIN")
-    cors_list = []
-    if api_base:
-        cors_list.append(api_base)
+    cors_list = [api_base] if api_base else []
     if frontend_origin:
         cors_list.append(frontend_origin)
     config = rx.Config(
