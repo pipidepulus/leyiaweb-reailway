@@ -9,9 +9,9 @@ Servicio 1: Web Service (Python)
 ```
 pip install --upgrade pip && pip install -r requirements.txt && reflex export --frontend-only
 ```
-- Start Command:
+- Start Command (evita doble bind de puerto en 0.8.7 usando un runner explícito):
 ```
-reflex run --env prod --backend-only --backend-host 0.0.0.0 --backend-port $PORT
+python run_backend_render.py
 ```
 - Variables:
   - REFLEX_ENV=prod
@@ -52,12 +52,16 @@ Se añadió lógica IS_RENDER para:
 | WebSocket error | FRONTEND_ORIGIN no listado en CORS | Añade variable y redeploy |
 | 404 en API | `api_url` vacío | Define API_BASE |
 | Version reflex antigua | Cache build | Forzar redeploy / "Clear build cache" |
+| Errores puerto en uso  | Reflex 0.8.7 intentando reloader | Actualiza a 0.8.13 y/o usa run_backend_render.py |
 
 ## Migraciones
 Si necesitas migraciones Alembic: ejecutar manualmente en Build Command antes del export:
 ```
 alembic upgrade head || echo "(warning) migrations no aplicadas"
 ```
+
+## Health Check
+El backend expone `/api/health` (GET) para monitoreo sencillo.
 
 ## Producción Completa
 Para revertir a single service en el futuro: usar Nginx reverse proxy o esperar soporte estable single-port.
