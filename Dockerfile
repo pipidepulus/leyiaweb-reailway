@@ -1,4 +1,4 @@
-# Dockerfile Refactorizado y Corregido para Render
+# Dockerfile Refactorizado y Final para Render
 
 # ====================================================================
 # Etapa 1: Builder
@@ -7,7 +7,6 @@
 FROM python:3.12-slim AS builder
 
 # Instalar dependencias del sistema necesarias para la compilación
-# AÑADIDO 'unzip' que es requerido por el instalador de Bun de Reflex
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -36,9 +35,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiar el resto del código de la aplicación
 COPY . .
 
+# Proveer una URL de BD falsa SÓLO para el tiempo de construcción.
+# Esto es necesario porque `reflex export` intenta inicializar el estado.
+# Esta variable será sobrescrita por la DATABASE_URL de Render en tiempo de ejecución.
+ENV DATABASE_URL="sqlite:///dummy_build.db"
+
 # ¡Paso clave! Pre-compilar el frontend.
-# Esto se hace UNA VEZ durante el build, no en cada arranque.
 RUN reflex export --frontend-only
+
 
 # ====================================================================
 # Etapa 2: Runtime
@@ -63,13 +67,10 @@ COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
 COPY --from=builder --chown=appuser:appuser /app /home/appuser
 
 # Activar el entorno virtual
-# Nota: WORKDIR ya está establecido a /home/appuser, por lo que el venv estará en el PATH relativo
-ENV PATH="/home/appuser/opt/venv/bin:$PATH"
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Exponer el puerto que Render utilizará (documentación)
-# Render establece la variable $PORT a 10000 por defecto
 EXPOSE 10000
 
 # El comando de inicio: simple, directo y robusto.
-# No necesita un script complejo. Lee $PORT de Render.
 CMD ["sh", "-c", "exec reflex run --env prod --backend-host 0.0.0.0 --backend-port $PORT"]
