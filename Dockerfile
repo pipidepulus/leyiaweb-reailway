@@ -1,8 +1,8 @@
-# Dockerfile Refactorizado y Final para Render (v7 - Final Definitivo)
+# Dockerfile Refactorizado y Final para Render (v8 - CMD Simplificado)
 
 # ====================================================================
 # Etapa 1: Builder
-# Construye las dependencias y el frontend de la aplicación.
+# ... (toda la etapa 1 se mantiene exactamente igual, sin cambios)
 # ====================================================================
 FROM python:3.12-slim AS builder
 
@@ -36,13 +36,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # --- SOLUCIÓN PARA EL BUILD ---
-# 1. Proveer una URL de BD falsa para el tiempo de construcción.
 ENV DATABASE_URL="sqlite:///dummy_build.db"
-
-# 2. Ejecutar nuestro script para crear las tablas en la BD "dummy".
 RUN python create_build_db.py
-
-# 3. Pre-compilar el frontend.
 RUN reflex export --frontend-only
 # --- FIN DE LA SOLUCIÓN ---
 
@@ -54,7 +49,6 @@ RUN reflex export --frontend-only
 FROM python:3.12-slim AS runtime
 
 # Instalar solo las dependencias de sistema necesarias para ejecutar
-# AÑADIDO 'curl', que es requerido por el script de instalación de bun al arrancar.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     unzip \
@@ -78,5 +72,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Exponer el puerto que Render utilizará (documentación)
 EXPOSE 10000
 
-# El comando de inicio: simple, directo y robusto.
-CMD ["sh", "-c", "exec reflex run --env prod --backend-host 0.0.0.0 --backend-port $PORT"]
+# --- LA SOLUCIÓN CLAVE ---
+# El comando de inicio: ultra-simple.
+# No especifica host ni puerto, ya que rxconfig.py los leerá del entorno.
+# Esto evita el conflicto "Address already in use".
+CMD ["reflex", "run", "--env", "prod"]
