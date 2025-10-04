@@ -1,40 +1,32 @@
-# rxconfig.py (Versión Final para Producción)
+# rxconfig.py (Versión Canónica)
 
 import os
 import reflex as rx
 
-# La URL pública de tu aplicación. Es CRUCIAL para que los WebSockets funcionen.
-API_URL = os.getenv("API_URL", "http://localhost:8000")
-
-# Orígenes permitidos para CORS, leídos desde una variable de entorno.
-CORS_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-
 # El puerto que Render nos asigna.
-# Usaremos esta misma variable para ambos, frontend y backend.
 RENDER_PORT = int(os.getenv("PORT", "8000"))
 
 config = rx.Config(
     app_name="asistente_legal_constitucional_con_ia",
     
-    # --- LA SOLUCIÓN CLAVE ---
-    # Forzar al backend Y al frontend a usar el mismo puerto.
-    # En producción, esto le indica a Reflex que ejecute un servidor integrado.
+    # SOLO definimos el backend.
+    # En producción, Reflex es lo suficientemente inteligente para saber
+    # que el backend también debe servir al frontend en este puerto.
     backend_host="0.0.0.0",
     backend_port=RENDER_PORT,
-    frontend_port=RENDER_PORT,
     
-    # Configuración de la API y la Base de Datos
-    api_url=API_URL,
+    # La URL pública es crucial
+    api_url=os.getenv("API_URL"),
+    
+    # Base de datos y entorno
     db_url=os.getenv("DATABASE_URL"),
-    
-    # Configuración del entorno y CORS
     env=rx.Env.PROD,
-    cors_allowed_origins=CORS_ORIGINS,
     
-    # Silenciar advertencia del sitemap para tener logs más limpios
+    # CORS y plugins
+    cors_allowed_origins=os.getenv("CORS_ALLOWED_ORIGINS", "").split(","),
     disable_plugins=["reflex.plugins.sitemap.SitemapPlugin"],
     
-    # Configuraciones adicionales de producción recomendadas
+    # Opcional: Configuraciones de producción
     telemetry_enabled=False,
     timeout=120,
 )
