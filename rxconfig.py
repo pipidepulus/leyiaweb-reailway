@@ -102,9 +102,11 @@ def get_config() -> rx.Config:  # Reflex detecta esta función
 		# Deshabilitar explícitamente para evitar la advertencia.
 		disable_plugins.append("reflex.plugins.sitemap.SitemapPlugin")
 
-	# Permitir orígenes locales típicos en desarrollo
+	# Permitir orígenes locales típicos en desarrollo.
+	# En prod, algunas versiones de Reflex (0.8.x) intentan iterar siempre esta colección.
+	# Si es None lanza TypeError; por eso devolvemos lista vacía (equivale a defaults internos manejados en server layer).
 	if ENV == "prod":
-		cors_allowed_origins: Optional[list[str]] = None  # usar defaults (Reflex validará)
+		cors_allowed_origins: list[str] = []
 	else:
 		cors_allowed_origins = [
 			"http://localhost:3000",
