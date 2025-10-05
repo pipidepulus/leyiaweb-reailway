@@ -102,11 +102,14 @@ def get_config() -> rx.Config:  # Reflex detecta esta función
 		# Deshabilitar explícitamente para evitar la advertencia.
 		disable_plugins.append("reflex.plugins.sitemap.SitemapPlugin")
 
-	# Permitir orígenes locales típicos en desarrollo.
-	# En prod, algunas versiones de Reflex (0.8.x) intentan iterar siempre esta colección.
-	# Si es None lanza TypeError; por eso devolvemos lista vacía (equivale a defaults internos manejados en server layer).
+	# CORS:
+	# - En desarrollo permitimos puertos locales típicos.
+	# - En producción aseguramos incluir el dominio público (si se define APP_PUBLIC_URL) y NO lanzamos el dev server.
+	app_public_url = os.getenv("APP_PUBLIC_URL", "").rstrip("/")
 	if ENV == "prod":
 		cors_allowed_origins: list[str] = []
+		if app_public_url:
+			cors_allowed_origins.append(app_public_url)
 	else:
 		cors_allowed_origins = [
 			"http://localhost:3000",
@@ -118,20 +121,23 @@ def get_config() -> rx.Config:  # Reflex detecta esta función
 	# Nota: rx.Config acepta parámetros documentados; mantenemos los esenciales.
 	# En Reflex 0.8.x, database_url se pasa como db_url.
 	# IMPORTANTE: Reflex espera que plugins sea iterable; no pasar None.
-	return rx.Config(
+	# En producción omitimos frontend_port para forzar a Reflex a servir estáticos desde el backend
+	# (evitando dev server separado en 3000 que causa conflictos en Render).
+	config_kwargs = dict(
 		app_name="asistente_legal_constitucional_con_ia",
 		db_url=db_url,
-		env=ENV,  # Reflex utiliza 'prod' para activar optimizaciones
+		env=ENV,
 		backend_port=int(os.getenv("PORT", "8000")),
-		frontend_port=int(os.getenv("FRONTEND_PORT", "3000")),
 		cors_allowed_origins=cors_allowed_origins,
-		# En muchos entornos de despliegue, el host debe ser 0.0.0.0
 		backend_host=os.getenv("BACKEND_HOST", "0.0.0.0"),
 		frontend_host=os.getenv("FRONTEND_HOST", "localhost"),
-		plugins=plugins,  # siempre lista (vacía o con plugin sitemap)
-		disable_plugins=disable_plugins or None,  # puede ser None sin problema
-		show_built_with_reflex=False,  # evitar branding en footer
+		plugins=plugins,
+		disable_plugins=disable_plugins or None,
+		show_built_with_reflex=False,
 	)
+	if ENV != "prod":  # solo en desarrollo necesitamos servidor frontend separado
+		config_kwargs["frontend_port"] = int(os.getenv("FRONTEND_PORT", "3000"))
+	return rx.Config(**config_kwargs)
 
 
 # Exponer instancia (algunas utilidades inspeccionan variable module-level)
