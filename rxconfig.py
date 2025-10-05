@@ -121,13 +121,14 @@ def get_config() -> rx.Config:  # Reflex detecta esta función
 	# Nota: rx.Config acepta parámetros documentados; mantenemos los esenciales.
 	# En Reflex 0.8.x, database_url se pasa como db_url.
 	# IMPORTANTE: Reflex espera que plugins sea iterable; no pasar None.
-	# En producción omitimos frontend_port para forzar a Reflex a servir estáticos desde el backend
-	# (evitando dev server separado en 3000 que causa conflictos en Render).
+	# En producción: evitamos fijar backend_port y frontend_port en el Config para que SOLO
+	# la línea de comando controle el puerto (Render inyecta $PORT). Pasar backend_port en config
+	# MÁS la opción --backend-port puede provocar comportamiento de doble chequeo / race con el
+	# gestor de procesos interno que reintenta conexión.
 	config_kwargs = dict(
 		app_name="asistente_legal_constitucional_con_ia",
 		db_url=db_url,
 		env=ENV,
-		backend_port=int(os.getenv("PORT", "8000")),
 		cors_allowed_origins=cors_allowed_origins,
 		backend_host=os.getenv("BACKEND_HOST", "0.0.0.0"),
 		frontend_host=os.getenv("FRONTEND_HOST", "localhost"),
@@ -135,7 +136,8 @@ def get_config() -> rx.Config:  # Reflex detecta esta función
 		disable_plugins=disable_plugins or None,
 		show_built_with_reflex=False,
 	)
-	if ENV != "prod":  # solo en desarrollo necesitamos servidor frontend separado
+	if ENV != "prod":  # solo en desarrollo necesitamos servidor frontend separado y puerto estable
+		config_kwargs["backend_port"] = int(os.getenv("PORT", "8000"))
 		config_kwargs["frontend_port"] = int(os.getenv("FRONTEND_PORT", "3000"))
 	return rx.Config(**config_kwargs)
 
@@ -143,6 +145,7 @@ def get_config() -> rx.Config:  # Reflex detecta esta función
 # Exponer instancia (algunas utilidades inspeccionan variable module-level)
 config = get_config()
 
-# Log mínimo al importar para ayudar a diagnóstico temprano
-print(f"[rxconfig] ENV={ENV} db_url={'sqlite' if 'sqlite' in config.db_url else 'postgres'} backend={config.backend_host}:{config.backend_port}")
+# Log mínimo al importar para ayudar a diagnóstico temprano (backend_port puede no existir en prod)
+_bp = getattr(config, "backend_port", os.getenv("PORT", "unknown"))
+print(f"[rxconfig] ENV={ENV} db_url={'sqlite' if 'sqlite' in config.db_url else 'postgres'} backend={config.backend_host}:{_bp}")
 
