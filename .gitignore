@@ -1,4 +1,5 @@
-assets/external/
+## Ignorar assets externos (directorio eliminado previamente)
+# (Eliminado: assets/external/ ya no existe)
 
 # Python bytecode y cachés
 *.py[cod]
@@ -52,8 +53,7 @@ node_modules/
 *.tmp
 *.temp
 
-# Archived/unused files
-unused/
+# (Removido) 'unused/' ya no existe; si se recrea manualmente, volver a añadir.
 
 # Empaquetado/Build de Python
 build/
@@ -66,6 +66,14 @@ dist/
 .mypy_cache/
 .coverage
 htmlcov/
+
+# SQLite (fallback dev) y otros archivos de BD locales
+*.sqlite3
+dev_local.sqlite3
+
+# Herramientas adicionales / metadatos locales
+.python-version
+coverage.xml
 
 
 
