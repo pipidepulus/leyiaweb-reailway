@@ -33,4 +33,5 @@ EXPOSE 3000
 
 # 9. Define el comando para iniciar la aplicación en modo producción.
 #    Railway usará este comando para arrancar tu servicio.
-CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "8080", "--frontend-port", "3000"]
+# CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "8080", "--frontend-port", "3000"]
+CMD ["reflex", "run", "--env", "prod", "--backend-host", "0.0.0.0", "--backend-port", "$PORT"]
