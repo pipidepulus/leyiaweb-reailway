@@ -129,6 +129,7 @@ def get_config() -> rx.Config:  # Reflex detecta esta función
 		app_name="asistente_legal_constitucional_con_ia",
 		db_url=db_url,
 		env=ENV,
+		api_url=app_public_url,
 		cors_allowed_origins=cors_allowed_origins,
 		backend_host=os.getenv("BACKEND_HOST", "0.0.0.0"),
 		frontend_host=os.getenv("FRONTEND_HOST", "localhost"),
