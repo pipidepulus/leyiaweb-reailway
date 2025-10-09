@@ -1,4 +1,3 @@
-assets/external/
 ## Ignorar assets externos (directorio eliminado previamente)
 # (Eliminado: assets/external/ ya no existe)
 
@@ -76,6 +75,9 @@ dev_local.sqlite3
 .python-version
 coverage.xml
 
+.web
+!.web/bun.lockb
+!.web/package.json
 
 
 
